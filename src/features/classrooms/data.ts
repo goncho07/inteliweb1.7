@@ -603,3 +603,35 @@ export const TEACHER_SCHEDULE: Record<
     },
   ],
 };
+
+/** Incidencias simuladas para el paso 2 (selección de incidencias) del compositor de citaciones. */
+export const CITATION_COMPOSE_INCIDENTS = [
+  {
+    id: "inc-1",
+    type: "No trajo el material escolar",
+    date: "14/04/2026",
+    time: "10:55 AM",
+    reporter: "Auxiliar Juan Perez",
+  },
+  {
+    id: "inc-2",
+    type: "Falta de respeto a compañero",
+    date: "12/04/2026",
+    time: "10:42 AM",
+    reporter: "Prof. Ana Gómez",
+  },
+  {
+    id: "inc-3",
+    type: "Interrupción constante",
+    date: "14/04/2026",
+    time: "10:40 AM",
+    reporter: "Prof. Ana Gómez",
+  },
+  {
+    id: "inc-4",
+    type: "Uso inadecuado del celular",
+    date: "13/04/2026",
+    time: "10:56 AM",
+    reporter: "Prof. Lorenzo Castillo",
+  },
+];

@@ -1,7 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { BookOpen, FileText, MoreVertical, Search } from 'lucide-react';
-import { ReportHistoryItem, ReportPreviewModal, ScrollableReportList, getFolderStyle } from '@/components/reports/ReportShared';
+import { getFolderStyle } from '@/components/reports/folderStyles';
+import { ReportPreviewModal } from '@/components/reports/ReportPreviewModal';
+import { ScrollableReportList } from '@/components/reports/ScrollableReportList';
+import { ReportHistoryItem } from '@/components/reports/types';
 import { MOCK_USERS } from '@/data/users';
 import { getScopedReportsHistory } from '@/features/classrooms/utils';
 
