@@ -1004,8 +1004,8 @@ export default function App() {
           {/* Simple header with logout */}
           <div className="bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800 px-8 py-4 flex justify-between items-center sticky top-0 z-50 shrink-0">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-400">
-                <User size={24} />
+              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-500 text-white flex items-center justify-center font-bold text-xl shadow-sm">
+                PV
               </div>
               <div>
                 <h1 className="text-2xl font-extrabold text-gray-900 dark:text-white leading-tight">

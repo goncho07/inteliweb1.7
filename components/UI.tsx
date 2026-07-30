@@ -159,7 +159,7 @@ export const SidebarItem: React.FC<{ icon: any; label: string; active: boolean; 
     <motion.div layout className={expanded ? 'shrink-0' : ''}>
       <Icon size={expanded ? 24 : 28} strokeWidth={active ? 2.5 : 2} className={iconClassName} />
     </motion.div>
-    <motion.span layout className={`${expanded ? 'text-[15px] font-bold' : 'text-xs font-bold text-center px-1'} tracking-tight whitespace-nowrap`}>
+    <motion.span layout className={`${expanded ? 'text-[15px] font-bold' : 'text-[11px] font-bold text-center px-1 w-full truncate'} tracking-tight whitespace-nowrap`}>
       {label}
     </motion.span>
   </motion.div>

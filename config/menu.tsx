@@ -2,12 +2,14 @@ import {
   Home, 
   Users, 
   BookOpen,
-  Mail
+  Mail,
+  MessageCircle
 } from 'lucide-react';
 import { DashboardModule } from '../modules/DashboardModule';
 import { ProfileModule } from '../modules/ProfileModule';
 import { ClassroomsModule } from '../modules/ClassroomsModule';
 import { CitationsModule } from '../modules/CitationsModule';
+import { WhatsAppModule } from '../modules/WhatsAppModule';
 import { MenuItemConfig } from '../types';
 
 export const MENU_CONFIG: MenuItemConfig[] = [
@@ -28,6 +30,12 @@ export const MENU_CONFIG: MenuItemConfig[] = [
     label: 'Citaciones',
     icon: Mail,
     component: CitationsModule
+  },
+  {
+    id: 'whatsapp',
+    label: 'WhatsApp',
+    icon: MessageCircle,
+    component: WhatsAppModule
   },
   {
     id: 'profile',

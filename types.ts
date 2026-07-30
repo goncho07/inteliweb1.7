@@ -36,7 +36,7 @@ export interface ClassItem {
 
 // --- Arquitectura SaaS ---
 
-export type ModuleId = 'dashboard' | 'users' | 'profile' | 'classrooms' | 'citations';
+export type ModuleId = 'dashboard' | 'users' | 'profile' | 'classrooms' | 'citations' | 'whatsapp';
 
 export interface ModuleProps {
   onNavigate: (view: ModuleId) => void;

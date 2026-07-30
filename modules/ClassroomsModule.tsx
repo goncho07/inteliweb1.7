@@ -50,7 +50,7 @@ import {
   Megaphone,
   AlertCircle,
   SquarePen,
-  MoreVertical,
+  Plus, MoreVertical,
   ListFilter,
   ArrowDown,
   Trophy,
@@ -514,32 +514,24 @@ const IncidenciasPanel: React.FC<{
   }, [students]);
 
   return (
-    <div className="flex-1 overflow-hidden min-h-0 flex flex-col pt-1">
-      <div className="flex flex-col overflow-hidden h-full relative animate-in fade-in slide-in-from-right-4 duration-500 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-inner">
-        <div className="bg-[#f0f4f8] dark:bg-slate-800/50 p-6 sm:p-10 shrink-0">
-          <div className="flex items-start sm:items-center w-full">
-            <button
-              onClick={onBack}
-              className="flex-shrink-0 mr-4 sm:mr-6 w-12 h-12 flex items-center justify-center rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-sm transition-all hover:text-blue-600 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-slate-700 dark:hover:text-blue-400 dark:hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 group"
-            >
-              <ArrowLeft
-                className="w-6 h-6 transition-transform group-hover:-translate-x-1"
-                strokeWidth={3}
-              />
-            </button>
-            <div className="flex-1 flex items-center gap-6 min-w-0">
-              <div className="relative w-16 h-16 shrink-0 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 hidden sm:flex items-center justify-center shadow-lg shadow-indigo-500/30 border border-indigo-400">
-                <Mail className="w-8 h-8 text-white" strokeWidth={2.5} />
-              </div>
-              <div>
-                <h2 className="text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                  Incidencias
-                </h2>
-                <p className="text-slate-600 dark:text-slate-400 font-medium text-base mt-2">
-                  Bandeja de gestión y notificaciones para padres de familia
-                </p>
-              </div>
-            </div>
+    <div className="flex-1 overflow-hidden min-h-0 flex flex-col">
+      <div className="flex flex-col overflow-hidden h-full relative animate-in fade-in slide-in-from-right-4 duration-500 bg-[#EFEAE2] dark:bg-[#0b141a]">
+        <div className="bg-[#f0f2f5] dark:bg-[#202c33] h-[59px] px-6 flex items-center shrink-0 border-b border-slate-200 dark:border-slate-800/60 z-20 gap-4">
+          <button onClick={onBack} className="text-[#54656f] dark:text-[#aebac1] hover:text-slate-800 dark:hover:text-slate-200 transition-colors">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div className="flex-1 flex items-center gap-3">
+             <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center shrink-0 overflow-hidden">
+                <AlertTriangle className="w-4 h-4 text-slate-500 dark:text-slate-300" />
+             </div>
+             <h2 className="font-semibold text-slate-800 dark:text-slate-200 text-[16px] truncate">Incidencias</h2>
+          </div>
+          <div className="flex items-center gap-4 text-[#54656f] dark:text-[#aebac1] shrink-0">
+             <button onClick={() => setIsComposeModalOpen(true)} className="hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+               <Plus className="w-5 h-5" />
+             </button>
+             <Search className="w-5 h-5 cursor-pointer hover:text-slate-600 dark:hover:text-slate-300 transition-colors" />
+             <MoreVertical className="w-5 h-5 cursor-pointer hover:text-slate-600 dark:hover:text-slate-300 transition-colors" />
           </div>
         </div>
 
@@ -1780,14 +1772,16 @@ const StudentsSidebar = ({
   }, [selectedStudent, filteredStudents, onSelectStudent, isLeaderboardOpen]);
 
   return (
-    <div className={`w-full lg:w-[320px] xl:w-[340px] shrink-0 flex flex-col h-[600px] lg:h-full bg-slate-50/80 dark:bg-slate-900/50 rounded-[2rem] border border-slate-100 dark:border-slate-800 p-4 shadow-inner relative overflow-hidden z-10 animate-in fade-in slide-in-from-left-4 duration-500`}>
-      <div className="bg-slate-100/50 dark:bg-slate-800/30 p-4 border-b border-slate-200 dark:border-slate-700/50 -mx-4 -mt-4 mb-4 flex flex-col gap-3">
+    <div className={`w-full sm:w-[350px] md:w-[400px] bg-white dark:bg-[#111b21] flex flex-col shrink-0 overflow-hidden border-r border-slate-200 dark:border-slate-800/60 z-10`}>
+      <div className="bg-[#f0f2f5] dark:bg-[#202c33] h-[59px] px-4 flex items-center justify-between shrink-0 border-b border-slate-200 dark:border-slate-800/60">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 font-bold text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-[15px]"
+          className="flex items-center gap-2 font-semibold text-[#54656f] dark:text-[#aebac1] hover:text-slate-800 dark:hover:text-slate-200 transition-colors text-[15px]"
         >
           <ChevronLeft className="w-5 h-5" /> {classroom.grade} {classroom.section}
         </button>
+      </div>
+      <div className="px-3 py-3 border-b border-slate-200 dark:border-slate-700/50 flex flex-col gap-3 bg-white dark:bg-[#111b21]">
 
         <div className="relative w-full border-b-[1.5px] border-slate-300 dark:border-slate-600 focus-within:border-slate-900 dark:focus-within:border-slate-300 transition-colors pb-1.5 flex items-center">
           <Search className="w-[18px] h-[18px] text-slate-700 dark:text-slate-300 mr-2" strokeWidth={2.5} />
@@ -1807,7 +1801,7 @@ const StudentsSidebar = ({
            <button onClick={() => setSortMode("tardies")} className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold transition-colors flex items-center gap-1.5 ${sortMode === "tardies" ? "bg-amber-100 text-amber-700 border-2 border-amber-200 dark:bg-amber-900/40 dark:text-amber-400 dark:border-amber-800" : "bg-white text-slate-600 border border-slate-200 hover:bg-amber-50 hover:text-amber-600 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"}`}><Clock className="w-3.5 h-3.5" /> Tardanzas</button>
         </div>
       </div>
-      <div className="flex flex-col gap-3 overflow-y-auto hidden-scrollbar pr-1 pb-4">
+      <div className="flex flex-col gap-3 overflow-y-auto hidden-scrollbar px-4 pt-2 pb-4 bg-white dark:bg-[#111b21] h-full">
          <button
             onClick={onToggleLeaderboard}
             className={`rounded-[20px] p-3 flex items-center gap-3 text-left transition-all group border-2 ${
@@ -1943,28 +1937,13 @@ export const ClassroomsModule: React.FC<ModuleProps> = ({
       variants={containerVariants}
       initial="hidden"
       animate="show"
-      className="h-full flex flex-col font-poppins relative"
+      className="flex flex-col h-full w-full font-poppins overflow-hidden bg-[#EFEAE2] dark:bg-[#0b141a]"
     >
       {/* We make the main wrapper handle the scroll to match DashboardModule */}
-      <div className="animate-in fade-in duration-300 flex-1 flex flex-col min-h-0 overflow-y-auto custom-scrollbar bg-white dark:bg-slate-950">
-        {!parentViewStudentId && (
-          <PageHeader
-            title={
-              headerData?.title ||
-              (selectedClassroom
-                ? "Aula"
-                : "Aulas")
-            }
-            icon={headerData?.icon || BookOpen}
-            onBack={
-              headerData?.onBack ||
-              (selectedClassroom ? () => setSelectedClassroom(null) : undefined)
-            }
-            className="bg-white"
-          />
-        )}
+      <div className="flex-1 overflow-hidden flex w-full">
+        {!parentViewStudentId && null}
         <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex flex-col lg:flex-row flex-1 p-4 sm:p-6 sm:pt-4 lg:px-8 lg:pb-8 lg:pt-4 gap-6 max-w-[1700px] mx-auto w-full min-h-0 overflow-hidden h-full">
+          <div className="flex flex-1 w-full min-h-0 overflow-hidden h-full">
             {!headerData && (
               selectedClassroom ? (
                 <StudentsSidebar
@@ -2037,7 +2016,7 @@ export const ClassroomsModule: React.FC<ModuleProps> = ({
                     setHeaderData={setHeaderData}
                  />
             ) : (
-                <div className="flex-1 flex flex-col min-w-0 relative h-[650px] lg:h-auto border border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/50 rounded-[2rem] overflow-hidden shadow-inner p-4 sm:p-5 lg:p-6">
+                <div className="flex-1 flex flex-col bg-[#efeae2] dark:bg-[#0b141a] relative h-[650px] lg:h-auto z-0 overflow-hidden">
                   {showLeaderboardDirectly && selectedClassroom ? (
                      <ClassroomLeaderboard classroom={selectedClassroom} onReportClick={() => { setSelectedStudent(null); setShowLeaderboardDirectly(false); setShowHistoryDirectly(true); }} />
                   ) : (selectedStudent && selectedClassroom) ? (
@@ -2049,19 +2028,36 @@ export const ClassroomsModule: React.FC<ModuleProps> = ({
                        isParentView={!!parentViewStudentId}
                      />
                   ) : !selectedClassroom ? (
-                 <div className="flex-1 flex flex-col overflow-hidden h-full w-full justify-center items-center bg-transparent">
-                   <div className="border-2 border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-[20px] w-[90%] max-w-xl flex flex-col items-center justify-center p-12 text-center h-[fit-content] min-h-[400px] shadow-sm hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md transition-all group">
-                       <div className="w-32 h-32 mb-6 opacity-90 transition-transform hover:scale-105 duration-500">
-                          <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Travel%20and%20places/School.png" alt="School" className="w-full h-full object-contain filter drop-shadow-xl saturate-150" />
+                 <div className="flex-1 flex flex-col overflow-hidden h-full w-full bg-slate-50 dark:bg-[#0b141a]">
+                   <div className="bg-[#f0f2f5] dark:bg-[#202c33] h-[59px] px-6 flex items-center justify-between shrink-0 border-b border-slate-200 dark:border-slate-800/60 z-20">
+                     <div className="flex items-center gap-3">
+                       <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-700 dark:text-blue-400 shrink-0">
+                         <School className="w-4 h-4" />
                        </div>
-                       <h2 className="text-[24px] font-black text-slate-800 dark:text-white mb-3 tracking-tight">
-                          {selectedGrade === "Todos" ? "Selecciona un Grado" : "Selecciona una Sección"}
-                       </h2>
-                       <p className="text-slate-500 dark:text-slate-400 text-[15px] font-medium max-w-md mx-auto leading-relaxed">
-                          {selectedGrade === "Todos" 
-                             ? "Navega por los niveles educativos y elige una sección para ver los detalles."
-                             : "Elige una sección en el panel lateral para empezar a visualizar el detalle de los alumnos."}
-                       </p>
+                       <div>
+                         <h2 className="font-semibold text-slate-800 dark:text-slate-200 text-[15px]">Detalles del Aula</h2>
+                         <p className="text-[11px] text-slate-500 dark:text-slate-400 -mt-0.5">Gestión de secciones e información del alumnado</p>
+                       </div>
+                     </div>
+                     <div className="flex items-center gap-4 text-[#54656f] dark:text-[#aebac1]">
+                       <Search className="w-5 h-5 cursor-pointer hover:text-slate-600 dark:hover:text-slate-300 transition-colors" />
+                       <MoreVertical className="w-5 h-5 cursor-pointer hover:text-slate-600 dark:hover:text-slate-300 transition-colors" />
+                     </div>
+                   </div>
+                   <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                       <div className="bg-white dark:bg-[#111b21] rounded-2xl border border-slate-200/80 dark:border-slate-800/60 p-10 max-w-md w-full shadow-sm flex flex-col items-center">
+                           <div className="w-16 h-16 rounded-2xl bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800/40 flex items-center justify-center text-blue-600 dark:text-blue-400 mb-5 shadow-sm">
+                              <School className="w-8 h-8" />
+                           </div>
+                           <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2 tracking-tight">
+                              {selectedGrade === "Todos" ? "Selecciona un Grado" : "Selecciona una Sección"}
+                           </h2>
+                           <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed max-w-sm">
+                              {selectedGrade === "Todos"
+                                  ? "Navega por los niveles educativos y elige una sección para ver los detalles."
+                                 : "Elige una sección en el panel lateral para empezar a visualizar el detalle de los alumnos."}
+                           </p>
+                       </div>
                    </div>
                  </div>
               ) : (
@@ -2358,15 +2354,18 @@ const ClassroomSidebar: React.FC<{
   }, []);
 
   return (
-    <div className={`w-full lg:w-[320px] xl:w-[340px] shrink-0 flex flex-col h-[600px] lg:h-full bg-slate-50/80 dark:bg-slate-900/50 rounded-[2rem] border border-slate-100 dark:border-slate-800 p-4 shadow-inner relative overflow-hidden z-10 animate-in fade-in slide-in-from-left-4 duration-500 ${selectedClassroom ? 'hidden lg:flex' : 'flex'}`}>
+    <div className={`w-full sm:w-[350px] md:w-[400px] bg-white dark:bg-[#111b21] flex flex-col shrink-0 overflow-hidden border-r border-slate-200 dark:border-slate-800/60 z-10 ${selectedClassroom ? 'hidden lg:flex' : 'flex'}`}>
       {selectedLevel === "Todos" ? (
         <>
-          <div className="bg-slate-100/50 dark:bg-slate-800/30 p-4 border-b border-slate-200 dark:border-slate-700/50 -mx-4 -mt-4 mb-4">
-            <h2 className="font-extrabold text-[15px] text-slate-800 dark:text-slate-100 flex items-center gap-2 px-1 tracking-wider uppercase">
-              <School className="w-5 h-5 text-blue-600" /> NIVELES EDUCATIVOS
-            </h2>
+          <div className="bg-[#f0f2f5] dark:bg-[#202c33] h-[59px] px-4 flex items-center justify-between shrink-0 border-b border-slate-200 dark:border-slate-800/60">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-700 dark:text-blue-400 shrink-0">
+                <School className="w-5 h-5" />
+              </div>
+              <h1 className="font-semibold text-slate-800 dark:text-slate-200 text-[15px]">Niveles Educativos</h1>
+            </div>
           </div>
-          <div className="flex flex-col gap-4 overflow-y-auto hidden-scrollbar pr-1 pb-4">
+          <div className="flex flex-col gap-4 overflow-y-auto hidden-scrollbar px-4 pt-4 pb-4 bg-white dark:bg-[#111b21] h-full">
             {/* Primaria (Proximamente) */}
             <button
                disabled
@@ -2386,16 +2385,13 @@ const ClassroomSidebar: React.FC<{
                   <h4 className="font-extrabold text-[#1A2642] dark:text-white text-[18px] mb-1">
                     Primaria
                   </h4>
-                  <div className="flex flex-col text-[14px] text-slate-500 dark:text-slate-400 font-bold leading-tight mt-0.5 space-y-0.5">
-                    <span className="flex items-center">6 Grados</span>
-                    <span className="flex items-center">18 Secciones</span>
-                  </div>
+                  
                </div>
             </button>
             {/* Secundaria */}
             <button
               onClick={() => setSelectedLevel("Secundaria")}
-              className="bg-purple-50/80 dark:bg-purple-900/20 rounded-[24px] border-2 border-purple-100/50 dark:border-purple-800/30 p-5 flex flex-row items-center gap-5 text-left shadow-sm hover:border-purple-400 dark:hover:border-purple-500 hover:shadow-md transition-all group"
+              className="bg-blue-50/80 dark:bg-blue-900/20 rounded-[24px] border-2 border-blue-100/50 dark:border-blue-800/30 p-5 flex flex-row items-center gap-5 text-left shadow-sm hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md transition-all group"
             >
               <div className="w-16 h-16 shrink-0 transition-transform group-hover:scale-110 flex items-center justify-center bg-white/50 dark:bg-slate-900/50 rounded-[16px]">
                   <img
@@ -2405,10 +2401,10 @@ const ClassroomSidebar: React.FC<{
                   />
               </div>
               <div className="flex flex-col flex-1 min-w-0 justify-center">
-                  <h4 className="font-extrabold text-[#1A2642] dark:text-white text-[18px] mb-1 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                  <h4 className="font-extrabold text-[#1A2642] dark:text-white text-[18px] mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                     Secundaria
                   </h4>
-                  <div className="flex flex-col text-[14px] text-purple-600/80 dark:text-purple-400 font-bold leading-tight mt-0.5 space-y-0.5">
+                  <div className="flex flex-col text-[14px] text-blue-600/80 dark:text-blue-400 font-bold leading-tight mt-0.5 space-y-0.5">
                     <span className="flex items-center">5 Grados</span>
                     <span className="flex items-center">34 Secciones</span>
                   </div>
@@ -2418,22 +2414,20 @@ const ClassroomSidebar: React.FC<{
         </>
       ) : selectedGrade === "Todos" ? (
         <>
-          <div className="bg-slate-100/50 dark:bg-slate-800/30 p-4 border-b border-slate-200 dark:border-slate-700/50 -mx-4 -mt-4 mb-4 flex items-center justify-between">
+          <div className="bg-[#f0f2f5] dark:bg-[#202c33] h-[59px] px-4 flex items-center justify-between shrink-0 border-b border-slate-200 dark:border-slate-800/60">
             <button
-              onClick={() => {
-                setSelectedLevel("Todos");
-              }}
-              className="flex items-center gap-2 font-bold text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-[15px]"
+              onClick={() => setSelectedLevel("Todos")}
+              className="flex items-center gap-2 font-semibold text-[#54656f] dark:text-[#aebac1] hover:text-slate-800 dark:hover:text-slate-200 transition-colors text-[15px]"
             >
               <ChevronLeft className="w-5 h-5" /> Niveles Educativos
             </button>
           </div>
-          <div className="flex flex-col gap-4 overflow-y-auto hidden-scrollbar pr-1 pb-4">
+          <div className="flex flex-col gap-4 overflow-y-auto hidden-scrollbar px-4 pt-4 pb-4 bg-white dark:bg-[#111b21] h-full">
             {Object.keys(EDUCATIONAL_STRUCTURE[selectedLevel] || {}).map((grade) => (
               <button
                 key={grade}
                 onClick={() => setSelectedGrade(grade)}
-                className="bg-purple-50/80 dark:bg-purple-900/20 rounded-[24px] border-2 border-purple-100/50 dark:border-purple-800/30 p-5 flex flex-row items-center gap-5 text-left shadow-sm hover:border-purple-400 dark:hover:border-purple-500 hover:shadow-md transition-all group"
+                className="bg-blue-50/80 dark:bg-blue-900/20 rounded-[24px] border-2 border-blue-100/50 dark:border-blue-800/30 p-5 flex flex-row items-center gap-5 text-left shadow-sm hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md transition-all group"
               >
                 <div className="w-16 h-16 shrink-0 transition-transform group-hover:scale-110 flex items-center justify-center bg-white/50 dark:bg-slate-900/50 rounded-[16px]">
                   <img
@@ -2443,10 +2437,10 @@ const ClassroomSidebar: React.FC<{
                   />
                 </div>
                 <div className="flex flex-col flex-1 min-w-0 justify-center">
-                  <h4 className="font-extrabold text-[#1A2642] dark:text-white text-[18px] mb-1 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                  <h4 className="font-extrabold text-[#1A2642] dark:text-white text-[18px] mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                     {grade}
                   </h4>
-                  <div className="flex flex-col text-[14px] text-purple-600/80 dark:text-purple-400 font-bold leading-tight mt-0.5 space-y-0.5">
+                  <div className="flex flex-col text-[14px] text-blue-600/80 dark:text-blue-400 font-bold leading-tight mt-0.5 space-y-0.5">
                     <span className="flex items-center">Alumnos: {((EDUCATIONAL_STRUCTURE[selectedLevel][grade]?.length || 0) * 30)}</span>
                     <span className="flex items-center">Docentes: 7 • Aux: 2</span>
                   </div>
@@ -2468,7 +2462,7 @@ const ClassroomSidebar: React.FC<{
               <ChevronLeft className="w-5 h-5" /> {selectedGrade}
             </button>
           </div>
-          <div className="flex flex-col gap-4 overflow-y-auto hidden-scrollbar pr-1 pb-4">
+          <div className="flex flex-col gap-4 overflow-y-auto hidden-scrollbar px-4 pt-4 pb-4 bg-white dark:bg-[#111b21] h-full">
             {Array.isArray(EDUCATIONAL_STRUCTURE[selectedLevel]?.[selectedGrade]) && EDUCATIONAL_STRUCTURE[selectedLevel][selectedGrade].map((section, idx) => {
               const isSelected =
                 selectedClassroom?.section === section && selectedClassroom?.grade === selectedGrade && selectedClassroom?.level === selectedLevel;
@@ -2821,12 +2815,15 @@ const ClassroomReportsHistory: React.FC<{
 
   return (
     <>
-      <div className={`w-full lg:w-[320px] xl:w-[340px] shrink-0 flex flex-col h-[600px] lg:h-full bg-slate-50/80 dark:bg-slate-900/50 rounded-[2rem] border border-slate-100 dark:border-slate-800 p-4 shadow-inner relative overflow-hidden z-10 animate-in fade-in slide-in-from-left-4 duration-500 flex`}>
-         <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col hidden-scrollbar pr-1 pb-4">
-          <div className="bg-slate-100/50 dark:bg-slate-800/30 p-4 border-b border-slate-200 dark:border-slate-700/50 -mx-4 -mt-4 mb-4">
-              <h2 className="font-extrabold text-[15px] text-slate-800 dark:text-slate-100 flex items-center gap-2 px-1 tracking-wider uppercase">
-                <FileText className="w-5 h-5 text-blue-600" /> CARPETAS DE REPORTES
-              </h2>
+      <div className={`w-full lg:w-[320px] xl:w-[340px] shrink-0 flex flex-col h-[600px] lg:h-full bg-white dark:bg-[#111b21] border-r border-slate-200 dark:border-slate-800/60 z-10 animate-in fade-in slide-in-from-left-4 duration-500`}>
+         <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col hidden-scrollbar px-4 pt-4 pb-4">
+          <div className="bg-[#f0f2f5] dark:bg-[#202c33] h-[59px] px-4 flex items-center shrink-0 border-b border-slate-200 dark:border-slate-800/60 z-20">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-700 dark:text-blue-400 shrink-0">
+                <FileText className="w-4 h-4" />
+              </div>
+              <h1 className="font-semibold text-slate-800 dark:text-slate-200 text-[15px]">Reportes</h1>
+            </div>
           </div>
          <div className="flex flex-col gap-3">
              {["Diario", "Semanal", "Mensual", "Bimestral"].map((folderName) => {
@@ -2852,7 +2849,14 @@ const ClassroomReportsHistory: React.FC<{
          </div>
       </div>
       
-      <div className="flex-1 flex flex-col min-w-0 relative h-[650px] lg:h-auto border border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/50 rounded-[2rem] overflow-hidden p-4 sm:p-5 lg:p-6 shadow-inner animate-in fade-in slide-in-from-right-4 duration-500">
+      <div className="flex-1 flex flex-col min-w-0 relative h-[650px] lg:h-auto bg-[#EFEAE2] dark:bg-[#0b141a] overflow-hidden animate-in fade-in slide-in-from-right-4 duration-500">
+        <div className="bg-[#f0f2f5] dark:bg-[#202c33] h-[59px] px-6 flex items-center justify-between shrink-0 border-b border-slate-200 dark:border-slate-800/60 shadow-sm z-20">
+            <h2 className="font-semibold text-slate-800 dark:text-slate-200 text-[16px]">Detalle de Reportes</h2>
+            <div className="flex items-center gap-4 text-[#54656f] dark:text-[#aebac1]">
+              <Search className="w-5 h-5 cursor-pointer hover:text-slate-600 dark:hover:text-slate-300 transition-colors" />
+              <MoreVertical className="w-5 h-5 cursor-pointer hover:text-slate-600 dark:hover:text-slate-300 transition-colors" />
+            </div>
+        </div>
         <div className="flex-1 p-4 sm:p-5 lg:p-6 overflow-y-auto custom-scrollbar">
             {historyPath.length === 0 ? (
                  <div className="flex flex-col items-center justify-center h-full text-center p-8">
@@ -4236,46 +4240,28 @@ const StudentDetail: React.FC<{
     <div className="flex-1 flex flex-col font-poppins animate-in fade-in slide-in-from-right-4 duration-500 pb-8">
       <div className="flex flex-col relative">
         <div className="flex-1 flex flex-col min-w-0">
-          <div className="bg-[#f0f4f8] dark:bg-slate-800/50 p-4 sm:p-5 shrink-0 rounded-t-[2rem]">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-                {!isParentView && (
-                  <button
-                    onClick={onBack}
-                    className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-sm transition-all hover:text-blue-600 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-slate-700 dark:hover:text-blue-400 dark:hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 group"
-                  >
-                    <ArrowLeft
-                      className="w-5 h-5 transition-transform group-hover:-translate-x-1"
-                      strokeWidth={3}
-                    />
-                  </button>
-                )}
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-12 h-12 shrink-0 rounded-xl flex items-center justify-center text-white text-xl font-bold shadow-sm ${student.avatarColor}`}
-                  >
-                    {student.name.charAt(0)}
-                  </div>
-                  <div>
-                    <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-none">
-                      {student.name}
-                    </h2>
-                    <div className="flex items-center gap-2 mt-1.5">
-                      <span className="px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full text-sm font-semibold">
-                        DNI: {student.dni}
-                      </span>
-                      <span className="px-2.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-sm font-semibold">
-                        {student.level === "Inicial"
-                          ? student.section
-                          : `${student.grade.replace("° Grado", "")}° ${student.section}`}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+          <div className="bg-[#f0f2f5] dark:bg-[#202c33] h-[59px] px-6 flex items-center shrink-0 border-b border-slate-200 dark:border-slate-800/60 z-20 gap-4">
+            {!isParentView && (
+              <button onClick={onBack} className="text-[#54656f] dark:text-[#aebac1] hover:text-slate-800 dark:hover:text-slate-200 transition-colors">
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+            )}
+            <div className="flex-1 flex items-center gap-3">
+               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm ${student.avatarColor}`}>
+                  {student.name.charAt(0)}
+               </div>
+               <div className="flex flex-col">
+                  <h2 className="font-semibold text-slate-800 dark:text-slate-200 text-[16px] leading-tight truncate">{student.name}</h2>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                      {student.grade} {student.section} • DNI: {student.dni}
+                  </span>
+               </div>
+            </div>
+            <div className="flex items-center gap-4 text-[#54656f] dark:text-[#aebac1] shrink-0">
+               <Search className="w-5 h-5 cursor-pointer hover:text-slate-600 dark:hover:text-slate-300 transition-colors" />
+               <MoreVertical className="w-5 h-5 cursor-pointer hover:text-slate-600 dark:hover:text-slate-300 transition-colors" />
             </div>
           </div>
-
           <div className="p-4 sm:p-5 space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Attendance Heatmap Card */}
@@ -4937,7 +4923,7 @@ const StudentDetail: React.FC<{
                             <p className="pl-8">
                               <span className="text-blue-400">"timestamp"</span>
                               :{" "}
-                              <span className="text-purple-400">
+                              <span className="text-blue-400">
                                 {Math.floor(Date.now() / 1000)}
                               </span>
                             </p>
@@ -6058,32 +6044,21 @@ const CitationsPanel: React.FC<{
   }, [students]);
 
   return (
-    <div className="flex-1 overflow-hidden min-h-0 flex flex-col pt-1">
-      <div className="flex flex-col overflow-hidden h-full relative animate-in fade-in slide-in-from-right-4 duration-500 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-inner">
-        <div className="bg-[#f0f4f8] dark:bg-slate-800/50 p-6 sm:p-10 shrink-0">
-          <div className="flex items-start sm:items-center w-full">
-            <button
-              onClick={onBack}
-              className="flex-shrink-0 mr-4 sm:mr-6 w-12 h-12 flex items-center justify-center rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shadow-sm transition-all hover:text-blue-600 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-slate-700 dark:hover:text-blue-400 dark:hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 group"
-            >
-              <ArrowLeft
-                className="w-6 h-6 transition-transform group-hover:-translate-x-1"
-                strokeWidth={3}
-              />
-            </button>
-            <div className="flex-1 flex items-center gap-6 min-w-0">
-              <div className="relative w-16 h-16 shrink-0 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 hidden sm:flex items-center justify-center shadow-lg shadow-indigo-500/30 border border-indigo-400">
-                <Mail className="w-8 h-8 text-white" strokeWidth={2.5} />
-              </div>
-              <div>
-                <h2 className="text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                  Comunicados
-                </h2>
-                <p className="text-slate-600 dark:text-slate-400 font-medium text-base mt-2">
-                  Bandeja de gestión y notificaciones para padres de familia
-                </p>
-              </div>
-            </div>
+    <div className="flex-1 overflow-hidden min-h-0 flex flex-col">
+      <div className="flex flex-col overflow-hidden h-full relative animate-in fade-in slide-in-from-right-4 duration-500 bg-[#EFEAE2] dark:bg-[#0b141a]">
+        <div className="bg-[#f0f2f5] dark:bg-[#202c33] h-[59px] px-6 flex items-center shrink-0 border-b border-slate-200 dark:border-slate-800/60 z-20 gap-4">
+          <button onClick={onBack} className="text-[#54656f] dark:text-[#aebac1] hover:text-slate-800 dark:hover:text-slate-200 transition-colors">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div className="flex-1 flex items-center gap-3">
+             <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center shrink-0 overflow-hidden">
+                <Mail className="w-4 h-4 text-slate-500 dark:text-slate-300" />
+             </div>
+             <h2 className="font-semibold text-slate-800 dark:text-slate-200 text-[16px] truncate">Comunicados</h2>
+          </div>
+          <div className="flex items-center gap-4 text-[#54656f] dark:text-[#aebac1] shrink-0">
+             <Search className="w-5 h-5 cursor-pointer hover:text-slate-600 dark:hover:text-slate-300 transition-colors" />
+             <MoreVertical className="w-5 h-5 cursor-pointer hover:text-slate-600 dark:hover:text-slate-300 transition-colors" />
           </div>
         </div>
 
