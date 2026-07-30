@@ -1,0 +1,147 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /*
+   * Tokens de shadcn/ui mapeados a la identidad visual de Intelicole:
+   * primary = #3030b8 (azul institucional), foreground = #0a2540 (navy),
+   * ring = #00c2ff (cian de marca).
+   */
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 210 73% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 210 73% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 73% 15%;
+
+    --primary: 240 59% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 210 73% 15%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 194 100% 50%;
+    --accent-foreground: 210 73% 15%;
+
+    --destructive: 347 77% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 194 100% 50%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    /* Negros puros, coherentes con el override de `slate` en tailwind.config.js. */
+    --background: 0 0% 0%;
+    --foreground: 0 0% 98%;
+
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 240 59% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 0 0% 13%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 13%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 194 100% 50%;
+    --accent-foreground: 0 0% 0%;
+
+    --destructive: 347 77% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 194 100% 50%;
+  }
+
+  body {
+    font-family: 'Poppins', sans-serif;
+  }
+}
+
+@layer utilities {
+  /* Oculta la barra de scroll manteniendo el desplazamiento. */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none; /* IE y Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+}
+
+/* Feedback global al presionar botones. */
+button:active {
+  transform: scale(0.98);
+  transition: transform 0.1s;
+}
+button:active.bg-\[\#3030b8\] {
+  box-shadow: 0 0 0 4px rgba(48, 48, 184, 0.3) !important;
+}
+button:active.bg-rose-600 {
+  box-shadow: 0 0 0 4px rgba(225, 29, 72, 0.3) !important;
+}
+button:active.bg-\[\#00c2ff\] {
+  box-shadow: 0 0 0 4px rgba(0, 194, 255, 0.3) !important;
+}
+button:active.bg-\[\#00a884\] {
+  box-shadow: 0 0 0 4px rgba(0, 168, 132, 0.3) !important;
+}
+
+/*
+ * Tema alternativo "Rojo Institucional".
+ * Se activa con <html data-theme="rojo"> y remapea la escala azul a rosa/rojo
+ * sin tocar el marcado de los componentes.
+ */
+:root[data-theme='rojo'] .text-blue-700 { color: #9f1239 !important; }
+:root[data-theme='rojo'] .text-blue-600 { color: #be123c !important; }
+:root[data-theme='rojo'] .text-blue-500 { color: #e11d48 !important; }
+:root[data-theme='rojo'] .text-blue-400 { color: #fb7185 !important; }
+:root[data-theme='rojo'] .text-cyan-500 { color: #fda4af !important; }
+:root[data-theme='rojo'] .bg-blue-600 { background-color: #be123c !important; }
+:root[data-theme='rojo'] .bg-blue-50 { background-color: #fff1f2 !important; }
+:root[data-theme='rojo'] .bg-blue-50\/80 { background-color: #fff1f2cc !important; }
+:root[data-theme='rojo'] .bg-blue-100 { background-color: #ffe4e6 !important; }
+:root[data-theme='rojo'] .border-blue-200\/50 { border-color: #fecdd380 !important; }
+:root[data-theme='rojo'] .hover\:bg-blue-700:hover { background-color: #9f1239 !important; }
+:root[data-theme='rojo'] .hover\:text-blue-300:hover { color: #fca5a5 !important; }
+:root[data-theme='rojo'] .hover\:text-blue-500:hover { color: #e11d48 !important; }
+:root[data-theme='rojo'] .hover\:text-blue-600:hover { color: #be123c !important; }
+:root[data-theme='rojo'] .border-blue-200 { border-color: #fecdd3 !important; }
+:root[data-theme='rojo'] .border-blue-600 { border-color: #be123c !important; }
+:root[data-theme='rojo'] .focus\:ring-blue-500:focus { --tw-ring-color: #e11d48 !important; }
+:root[data-theme='rojo'] .focus\:border-blue-500:focus { border-color: #e11d48 !important; }
+:root[data-theme='rojo'] .from-blue-600 {
+  --tw-gradient-from: #be123c var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgb(190 18 60 / 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+}
+:root[data-theme='rojo'] .to-cyan-500 { --tw-gradient-to: #fb7185 var(--tw-gradient-to-position) !important; }
+:root[data-theme='rojo'] .shadow-blue-200 {
+  --tw-shadow-color: #fecdd3 !important;
+  --tw-shadow: var(--tw-shadow-colored) !important;
+}
+:root[data-theme='rojo'] .dark\:text-blue-400:is(.dark *) { color: #fda4af !important; }
+:root[data-theme='rojo'] .dark\:bg-blue-900\/30:is(.dark *) { background-color: rgb(159 18 57 / 0.3) !important; }
+:root[data-theme='rojo'] .dark\:bg-blue-900\/20:is(.dark *) { background-color: rgb(159 18 57 / 0.2) !important; }
+:root[data-theme='rojo'] .dark\:border-blue-800:is(.dark *) { border-color: #9f1239 !important; }
+:root[data-theme='rojo'] .shadow-lg.shadow-blue-200 {
+  box-shadow: 0 10px 15px -3px rgb(254 205 211 / 0.5), 0 4px 6px -4px rgb(254 205 211 / 0.5) !important;
+}
