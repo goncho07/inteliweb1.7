@@ -30,13 +30,34 @@ export const EDUCATIONAL_STRUCTURE: LevelConfig = {
     '6° Grado': ['A', 'B', 'C'],
   },
   Secundaria: {
-    '1° Grado': ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'],
-    '2° Grado': ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
+    '1° Grado': ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
+    '2° Grado': ['A', 'B', 'C', 'D', 'E', 'F'],
     '3° Grado': ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
-    '4° Grado': ['A', 'B', 'C', 'D', 'E', 'F'],
+    '4° Grado': ['A', 'B', 'C', 'D', 'E', 'F', 'G'],
     '5° Grado': ['A', 'B', 'C', 'D', 'E', 'F'],
   },
 };
+
+/** Alumnos por sección cuando no hay nómina real que lo reemplace (Inicial y Primaria). */
+export const DEFAULT_SECTION_SIZE = 30;
+
+/**
+ * Nómina real de Secundaria (dato provisto por el colegio, no simulado):
+ * cantidad exacta de alumnos por grado y sección. Única fuente de verdad —
+ * de aquí sale cuántos `MOCK_USERS` estudiantes se generan por sección
+ * (`data/users.ts`).
+ */
+export const SECUNDARIA_SECTION_SIZES: Record<string, Record<string, number>> = {
+  '1° Grado': { A: 32, B: 33, C: 33, D: 25, E: 31, F: 28, G: 29 },
+  '2° Grado': { A: 34, B: 34, C: 34, D: 34, E: 33, F: 34 },
+  '3° Grado': { A: 29, B: 29, C: 27, D: 27, E: 27, F: 27, G: 28 },
+  '4° Grado': { A: 31, B: 31, C: 31, D: 33, E: 34, F: 31, G: 32 },
+  '5° Grado': { A: 29, B: 28, C: 34, D: 27, E: 29, F: 27 },
+};
+
+/** Cantidad de alumnos de una sección puntual: la nómina real en Secundaria, o `DEFAULT_SECTION_SIZE` en el resto. */
+export const getSectionSize = (level: string, grade: string, section: string): number =>
+  level === 'Secundaria' ? (SECUNDARIA_SECTION_SIZES[grade]?.[section] ?? DEFAULT_SECTION_SIZE) : DEFAULT_SECTION_SIZE;
 
 const NEUTRAL_BADGE = 'bg-slate-50 text-slate-700 border-slate-200';
 

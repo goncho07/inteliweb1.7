@@ -1,8 +1,8 @@
 # Intelicole Web
 
 Sistema de gestión escolar para instituciones educativas peruanas: matrícula,
-asistencia, incidencias conductuales, citaciones a apoderados, libretas de notas
-y un asistente de IA.
+asistencia, incidencias conductuales, citaciones a apoderados y libretas de
+notas.
 
 ## Stack
 
@@ -14,19 +14,14 @@ y un asistente de IA.
 | Animación   | Framer Motion                               |
 | Gráficos    | Recharts                                    |
 | PDF         | jsPDF + jspdf-autotable                     |
-| IA          | Google Gemini (`@google/genai`)             |
 | Iconos      | lucide-react                                |
 
 ## Puesta en marcha
 
 ```bash
 npm install
-cp .env.example .env    # y rellena GEMINI_API_KEY
 npm run dev             # http://localhost:3000
 ```
-
-`GEMINI_API_KEY` sólo hace falta para el asistente de IA; el resto de la
-aplicación funciona sin ella.
 
 ## Scripts
 
@@ -49,11 +44,10 @@ src/
 ├── assets/images/           Imágenes empaquetadas por Vite
 ├── components/
 │   ├── ui/                  shadcn/ui — generado por CLI, no editar a mano
-│   ├── common/              Primitivos propios (PageHeader, KPICard)
+│   ├── common/              Primitivos propios (StudentAvatar, NavCard)
 │   ├── layout/              Piezas del armazón (SidebarItem)
 │   ├── modals/              Todos los modales + barrel `index.ts`
-│   ├── calendar/            CustomCalendar, RightSidebarCalendar
-│   └── reports/             Libretas y reportes imprimibles
+│   └── calendar/            CustomCalendar, RightSidebarCalendar
 ├── config/
 │   ├── app.ts               Marca e imágenes institucionales
 │   └── menu.tsx             Registro de módulos del menú lateral
@@ -64,7 +58,6 @@ src/
 │   └── classrooms/          panelVariants.ts define las variantes del panel
 │                            de seguimiento (Incidencias / Comunicados)
 ├── lib/                     Utilidades puras (cn, avatares, fechas, motion)
-├── services/                Clientes de APIs externas (Gemini)
 ├── styles/index.css         Directivas Tailwind + tokens de tema
 └── types/index.ts           Tipos compartidos
 ```

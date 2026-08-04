@@ -1,27 +1,26 @@
 import type { LucideIcon } from 'lucide-react';
+import type { ClassroomRef, UserItem } from '@/types';
 
 /** Tipos del módulo de aulas. */
 
-export type CitationStatus =
-  | "pending"
-  | "waiting"
-  | "confirmed_by_parent"
-  | "closed"
-  // Usado por el filtro "Rechazadas" de los paneles de incidencias y citaciones.
-  | "rejected";
+/** Re-exportado desde `@/types`: vive ahí porque `Session` también lo necesita. */
+export type { ClassroomRef };
 
-export interface CitationItem {
-  id: string;
-  name: string;
-  studentId?: string;
-  avatarLetter: string;
-  avatarColor: string;
-  reason: string;
-  theme: "yellow" | "orange" | "red" | "blue";
-  status: CitationStatus;
-  scheduledDate?: string;
-  incidents?: { type: string; date: string; time: string; teacher: string }[];
-}
+/**
+ * Única fuente de verdad de "qué se ve" en el módulo Aulas — sustituye a las
+ * 4 banderas booleanas + `selectedClassroom`/`selectedStudent` dispersos que
+ * tenía `ClassroomsModule` antes de este rework. Cada variante identifica una
+ * pantalla completa (qué sidebar y qué panel principal corresponden), en vez
+ * de dejar que se combinen de formas inválidas.
+ *
+ * Aulas navega en un solo sentido — Nivel → Grado → Sección → Alumnos → Perfil.
+ * Citar a un apoderado vive en el módulo Citaciones; los reportes, en el
+ * módulo Reportes. Ninguno de los dos se abre desde aquí.
+ */
+export type ClassroomsView =
+  | { kind: 'browse' }
+  | { kind: 'section-overview'; classroom: ClassroomRef }
+  | { kind: 'student-detail'; classroom: ClassroomRef; student: UserItem };
 
 /** Día del calendario de asistencia mensual de `StudentDetail`. */
 export interface AttendanceCalendarDay {
@@ -51,9 +50,4 @@ export interface PersonalIncidentEntry {
     color: string;
   };
   description: string;
-  signatureStatus: string;
-  signatureDate?: string;
-  signatureIp?: string;
-  /** Sólo presente en algunas simulaciones de notificación por WhatsApp. */
-  registrar?: string;
 }

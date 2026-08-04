@@ -1,16 +1,24 @@
 import React, { useMemo, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { Briefcase, GraduationCap, IdCard, Plus, Search, ShieldCheck, User, Users, X } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
+import { IdCard, Plus, Search, Users, X } from 'lucide-react';
 
-import { KPICard } from '@/components/common/KPICard';
-import { PageHeader } from '@/components/common/PageHeader';
+import { ModuleBody, ModulePane, ModulePaneHeader, ModuleShell, ModuleSidebar } from '@/components/layout/ModuleShell';
 import { CreateUserModal, TeacherScheduleModal, UserDetailsModal } from '@/components/modals';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { GenerateCarnetsModal } from '@/features/users/components/GenerateCarnetsModal';
+import { RoleFilterPanel } from '@/features/users/components/RoleFilterPanel';
 import { UsersTable } from '@/features/users/components/UsersTable';
-import { containerVariants } from '@/lib/motion';
 import { EDUCATIONAL_STRUCTURE } from '@/data/education';
 import { MOCK_USERS } from '@/data/users';
 import { ModuleProps, UserItem } from '@/types';
+
+const ROLE_PLURAL: Record<UserItem['role'], string> = {
+  Estudiante: 'Estudiantes',
+  Apoderado: 'Apoderados',
+  Docente: 'Docentes',
+  Administrativo: 'Administrativos',
+};
 
 export const UsersModule: React.FC<ModuleProps> = () => {
   // Estado Principal
@@ -49,7 +57,6 @@ export const UsersModule: React.FC<ModuleProps> = () => {
   // Modales
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCarnetModalOpen, setIsCarnetModalOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserItem | null>(null);
   const [selectedTeacherForSchedule, setSelectedTeacherForSchedule] = useState<UserItem | null>(null);
@@ -135,144 +142,105 @@ export const UsersModule: React.FC<ModuleProps> = () => {
   const paginatedUsers = filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <motion.div variants={containerVariants} initial="hidden" animate="show" className="h-full flex flex-col font-poppins bg-[#f4f6fa] dark:bg-slate-950 overflow-hidden">
-      <div className="flex-none">
-      {/* Header Estandarizado */}
-      <PageHeader
-        title="Usuarios"
-        icon={Users}
-        className="!pb-2 sm:!pb-4 !rounded-none shadow-sm z-10 relative"
-      />
-      </div>
-
-      <div className="flex-1 flex flex-col p-4 sm:p-6 sm:pt-4 lg:px-8 lg:pb-8 lg:pt-4 max-w-[1700px] mx-auto w-full min-h-0 overflow-y-auto hidden-scrollbar gap-6">
-        {/* Grid Principal Layout Unificado */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-stretch shrink-0">
-
-          {/* FILA 1: Tarjetas KPI */}
-          <div className="lg:col-span-1">
-            <button
-              onClick={() => changeRole('Estudiante')}
-              className={`w-full text-left rounded-xl transition-all ${selectedRole === 'Estudiante' ? 'ring-4 ring-blue-500/50' : ''}`}
-            >
-              <KPICard
-                title="Estudiantes"
-                value={stats.estudiantes.toString()}
-                icon={GraduationCap}
-                variant="blue"
-              />
-            </button>
-          </div>
-          <div className="lg:col-span-1">
-            <button
-              onClick={() => changeRole('Apoderado')}
-              className={`w-full text-left rounded-xl transition-all ${selectedRole === 'Apoderado' ? 'ring-4 ring-rose-500/50' : ''}`}
-            >
-              <KPICard
-                title="Apoderados"
-                value={stats.apoderados.toString()}
-                icon={User}
-                variant="rose"
-              />
-            </button>
-          </div>
-          <div className="lg:col-span-1">
-            <button
-              onClick={() => changeRole('Docente')}
-              className={`w-full text-left rounded-xl transition-all ${selectedRole === 'Docente' ? 'ring-4 ring-emerald-500/50' : ''}`}
-            >
-              <KPICard
-                title="Docentes"
-                value={stats.docentes.toString()}
-                icon={Briefcase}
-                variant="emerald"
-              />
-            </button>
-          </div>
-          <div className="lg:col-span-1">
-            <button
-              onClick={() => changeRole('Administrativo')}
-              className={`w-full text-left rounded-xl transition-all ${selectedRole === 'Administrativo' ? 'ring-4 ring-orange-500/50' : ''}`}
-            >
-              <KPICard
-                title="Administrativos"
-                value={stats.administrativos.toString()}
-                icon={ShieldCheck}
-                variant="orange"
-              />
-            </button>
-          </div>
-
-        {/* BARRA DE BÚSQUEDA Y ACCIONES (Columna 1-4) */}
-        <div className="col-span-1 lg:col-span-4 flex flex-col gap-4">
-            <div className="flex gap-4">
-                <div className="relative flex-1">
-                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                    <input
-                      type="text"
-                      placeholder="Buscar por nombre o documento..."
-                      value={search}
-                      onChange={(e) => changeSearch(e.target.value)}
-                      className="w-full h-full pl-14 pr-4 py-4 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl outline-none focus:border-blue-500 transition-colors shadow-sm text-base"
-                    />
-                </div>
-
-                <div className="flex gap-2">
-                    <button
-                      onClick={() => setIsCarnetModalOpen(true)}
-                      className="flex items-center gap-2 px-6 py-4 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-blue-600 transition-all shadow-sm hover:shadow-md"
-                    >
-                      <IdCard size={20} /> Descargar Carnets
-                    </button>
-                    <button
-                      onClick={() => setIsModalOpen(true)}
-                      className="flex items-center gap-2 px-6 py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-sm hover:shadow-md"
-                    >
-                      <Plus size={20} /> Crear Usuario
-                    </button>
-                </div>
+    <ModuleShell>
+      <ModuleSidebar title="Usuarios" icon={Users}>
+        <div className="hidden-scrollbar flex-1 space-y-6 overflow-y-auto p-3">
+          <div>
+            <div className="px-2 pb-1 pt-2">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Tipo de usuario</h3>
             </div>
-
-            {/* Info de resultados debajo del buscador */}
-            <div className="px-2 mt-1">
-                <span className="text-xs font-bold text-gray-500">
-                    Mostrando {paginatedUsers.length} de {filteredUsers.length} {selectedRole.toLowerCase()}s
-                </span>
-                {activeFiltersCount > 0 && (
-                    <button
-                        onClick={clearFilters}
-                        className="inline-flex items-center gap-1 ml-4 px-2 py-1 text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors"
-                    >
-                        <X size={12} /> Limpiar filtros
-                    </button>
-                )}
-            </div>
+            <RoleFilterPanel selectedRole={selectedRole} onSelectRole={changeRole} stats={stats} />
+          </div>
         </div>
+      </ModuleSidebar>
 
-        {/* PANEL DERECHO: TABLA (Columna 1-4) */}
-        <UsersTable
-          paginatedUsers={paginatedUsers}
-          selectedRole={selectedRole}
-          selectedLevel={selectedLevel}
-          changeLevel={changeLevel}
-          selectedGrade={selectedGrade}
-          changeGrade={changeGrade}
-          selectedSection={selectedSection}
-          changeSection={changeSection}
-          gradeOptions={gradeOptions}
-          sectionOptions={sectionOptions}
-          selectedStatus={selectedStatus}
-          changeStatus={changeStatus}
-          openDropdown={openDropdown}
-          setOpenDropdown={setOpenDropdown}
-          setSelectedUser={setSelectedUser}
-          setInitialModalTab={setInitialModalTab}
-          setSelectedTeacherForSchedule={setSelectedTeacherForSchedule}
-          setIsScheduleModalOpen={setIsScheduleModalOpen}
-          currentPage={currentPage}
-          setCurrentPage={setCurrentPage}
-          totalPages={totalPages}
-        />
+      <ModulePane>
+        <ModulePaneHeader>
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400">
+              <IdCard size={20} strokeWidth={2} />
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-lg font-bold text-slate-800 dark:text-white">
+                {ROLE_PLURAL[selectedRole]}
+              </p>
+              <p className="truncate text-sm text-slate-500 dark:text-slate-400">
+                {filteredUsers.length} {filteredUsers.length === 1 ? 'registrado' : 'registrados'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex shrink-0 gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsCarnetModalOpen(true)}
+              className="h-10 rounded-xl px-4 font-bold shadow-sm"
+            >
+              <IdCard size={18} /> Descargar carnets
+            </Button>
+            <Button onClick={() => setIsModalOpen(true)} className="h-10 rounded-xl px-4 font-bold shadow-sm">
+              <Plus size={18} /> Crear usuario
+            </Button>
+          </div>
+        </ModulePaneHeader>
+
+        <ModuleBody centered>
+          <div className="relative">
+            <Search
+              className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+              size={20}
+            />
+            <Input
+              type="text"
+              placeholder="Buscar por nombre o documento..."
+              value={search}
+              onChange={(e) => changeSearch(e.target.value)}
+              className="h-12 rounded-xl pl-12 text-base shadow-sm"
+            />
+          </div>
+
+          <div className="flex items-center gap-4 px-2">
+            <span className="text-sm font-bold text-slate-500 dark:text-slate-400">
+              Mostrando {paginatedUsers.length} de {filteredUsers.length} {ROLE_PLURAL[selectedRole].toLowerCase()}
+            </span>
+            {activeFiltersCount > 0 && (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={clearFilters}
+                className="h-10 gap-2 px-3 text-sm font-bold text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10"
+              >
+                <X size={16} /> Limpiar filtros
+              </Button>
+            )}
+          </div>
+
+          <UsersTable
+            paginatedUsers={paginatedUsers}
+            selectedRole={selectedRole}
+            selectedLevel={selectedLevel}
+            changeLevel={changeLevel}
+            selectedGrade={selectedGrade}
+            changeGrade={changeGrade}
+            selectedSection={selectedSection}
+            changeSection={changeSection}
+            gradeOptions={gradeOptions}
+            sectionOptions={sectionOptions}
+            selectedStatus={selectedStatus}
+            changeStatus={changeStatus}
+            openDropdown={openDropdown}
+            setOpenDropdown={setOpenDropdown}
+            setSelectedUser={setSelectedUser}
+            setInitialModalTab={setInitialModalTab}
+            setSelectedTeacherForSchedule={setSelectedTeacherForSchedule}
+            setIsScheduleModalOpen={setIsScheduleModalOpen}
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+            totalPages={totalPages}
+          />
+        </ModuleBody>
+      </ModulePane>
+
       <AnimatePresence>
         {isModalOpen && <CreateUserModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />}
         {selectedUser && (
@@ -308,8 +276,6 @@ export const UsersModule: React.FC<ModuleProps> = () => {
           />
         )}
       </AnimatePresence>
-      </div>
-      </div>
-    </motion.div>
+    </ModuleShell>
   );
 };

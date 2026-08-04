@@ -21,7 +21,7 @@ export const DataField: React.FC<DataFieldProps> = ({ label, value, subValue, ic
       <Icon size={18} />
     </div>
     <div className="min-w-0 flex-1">
-      <p className="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-gray-800 dark:text-gray-400">
+      <p className="mb-0.5 text-xs font-bold uppercase tracking-widest text-gray-800 dark:text-gray-400">
         {label}
       </p>
       <p className="truncate text-sm font-bold text-gray-900 dark:text-white">
@@ -96,7 +96,7 @@ export const FamilyRow: React.FC<FamilyRowProps> = ({
             {isEditing ? (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="md:col-span-2">
-                  <Label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                  <Label className="mb-1 block text-xs font-bold uppercase tracking-widest text-gray-400">
                     Nombre Completo
                   </Label>
                   <div className="relative">
@@ -111,7 +111,7 @@ export const FamilyRow: React.FC<FamilyRowProps> = ({
                 </div>
 
                 <div>
-                  <Label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                  <Label className="mb-1 block text-xs font-bold uppercase tracking-widest text-gray-400">
                     DNI / Documento
                   </Label>
                   <div className="relative">
@@ -126,7 +126,7 @@ export const FamilyRow: React.FC<FamilyRowProps> = ({
                 </div>
 
                 <div>
-                  <Label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                  <Label className="mb-1 block text-xs font-bold uppercase tracking-widest text-gray-400">
                     Teléfono de Contacto
                   </Label>
                   <div className="relative">
@@ -146,11 +146,11 @@ export const FamilyRow: React.FC<FamilyRowProps> = ({
                   <p className="text-lg font-black uppercase tracking-tight text-gray-900 dark:text-white">
                     {editedName}
                   </p>
-                  <span className={cn('rounded-lg border px-2.5 py-1 text-[10px] font-black uppercase', accent)}>
+                  <span className={cn('rounded-lg border px-2.5 py-1 text-xs font-black uppercase', accent)}>
                     {role}
                   </span>
                   {isNotified && (
-                    <span className="flex items-center gap-1 rounded-lg border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase text-emerald-600 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-400">
+                    <span className="flex items-center gap-1 rounded-lg border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-xs font-black uppercase text-emerald-600 dark:border-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-400">
                       <Bell size={10} /> Apoderado
                     </span>
                   )}
@@ -212,7 +212,7 @@ export const FamilyRow: React.FC<FamilyRowProps> = ({
           </div>
           <div>
             <p className="text-xs font-bold text-gray-900 dark:text-white">Recibir Notificaciones</p>
-            <p className="text-[10px] text-gray-500 dark:text-gray-400">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               Designar como apoderado principal para avisos y alertas.
             </p>
           </div>

@@ -52,11 +52,11 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         )}
 
         <div className="flex flex-col text-left">
-          <h3 className="text-[28px] font-black leading-none tracking-tight text-[#0a2540] dark:text-white sm:text-4xl">
+          <h3 className="text-3xl font-black leading-none tracking-tight text-[#0a2540] dark:text-white sm:text-4xl">
             {title}
           </h3>
           {subtitle && (
-            <p className="mt-1.5 text-[13px] font-bold text-[#0a2540]/80 dark:text-slate-300 sm:text-[14px]">
+            <p className="mt-1.5 text-sm font-bold text-[#0a2540]/80 dark:text-slate-300">
               {subtitle}
             </p>
           )}

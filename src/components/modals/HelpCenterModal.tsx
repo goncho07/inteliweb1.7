@@ -1,6 +1,8 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, BookOpen, HelpCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { modalVariants } from '@/lib/motion';
 
 export const HelpCenterModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
@@ -8,7 +10,7 @@ export const HelpCenterModal: React.FC<{ isOpen: boolean; onClose: () => void }>
   return (
     <AnimatePresence>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] flex justify-center items-center p-4" onClick={onClose}>
-        <motion.div variants={modalVariants} initial="hidden" animate="visible" exit="exit" className="w-full max-w-4xl max-h-[90vh] bg-white dark:bg-slate-950 rounded-xl shadow-2xl overflow-y-auto border border-gray-100 dark:border-slate-800" onClick={(e) => e.stopPropagation()}>
+        <motion.div variants={modalVariants} initial="hidden" animate="visible" exit="exit" className="w-full max-w-4xl max-h-[90vh] bg-white dark:bg-slate-950 rounded-xl shadow-lg overflow-y-auto border border-gray-100 dark:border-slate-800" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-slate-800 sticky top-0 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md z-10">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
               <span className="p-2 bg-blue-50 text-blue-600 rounded-xl dark:bg-blue-900/30 dark:text-blue-400">
@@ -16,9 +18,23 @@ export const HelpCenterModal: React.FC<{ isOpen: boolean; onClose: () => void }>
               </span>
               Ayuda y Soporte
             </h2>
-            <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-              <X size={24}/>
-            </button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={onClose}
+                    aria-label="Cerrar ayuda y soporte"
+                    className="h-10 w-10 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 [&_svg]:size-6"
+                  >
+                    <X size={24}/>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Cerrar</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           
           <div className="p-8 space-y-12">

@@ -1,6 +1,8 @@
 import { motion } from 'framer-motion';
 import { Download, IdCard, X } from 'lucide-react';
 
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { FilterChipGroup } from '@/features/users/components/FilterChipGroup';
 import { generateBulkCarnets } from '@/features/users/utils';
 
@@ -39,7 +41,7 @@ export const GenerateCarnetsModal: React.FC<{
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-800 overflow-hidden"
+              className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-gray-100 dark:border-slate-800 overflow-hidden"
             >
               <div className="p-8">
                 <div className="flex items-center justify-between mb-6">
@@ -52,12 +54,23 @@ export const GenerateCarnetsModal: React.FC<{
                       <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-0.5">Filtro de Lote</p>
                     </div>
                   </div>
-                  <button
-                    onClick={onClose}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition-colors text-gray-400"
-                  >
-                    <X size={20} />
-                  </button>
+                  <TooltipProvider delayDuration={200}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={onClose}
+                          aria-label="Cerrar generación de carnets"
+                          className="rounded-xl text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800"
+                        >
+                          <X size={20} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Cerrar</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
 
                 <div className="space-y-6">
@@ -98,21 +111,24 @@ export const GenerateCarnetsModal: React.FC<{
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mt-8">
-                  <button
+                  <Button
+                    type="button"
+                    variant="outline"
                     onClick={onClose}
-                    className="py-4 bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-slate-700 transition-all"
+                    className="h-12 rounded-xl font-bold"
                   >
                     Cancelar
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    type="button"
                     onClick={() => {
                       generateBulkCarnets(selectedLevel, selectedGrade, selectedSection);
                       onClose();
                     }}
-                    className="py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 dark:shadow-none flex items-center justify-center gap-2"
+                    className="h-12 rounded-xl font-bold shadow-lg shadow-blue-200 dark:shadow-none [&_svg]:size-[18px]"
                   >
                     <Download size={18} /> Generar PDF
-                  </button>
+                  </Button>
                 </div>
               </div>
             </motion.div>

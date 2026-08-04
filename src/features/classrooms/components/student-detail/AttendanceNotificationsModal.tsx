@@ -1,7 +1,10 @@
 import React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, Bell, Calendar, Check, CheckCircle2, Clock, MessageCircle, X } from 'lucide-react';
+import { Bell, Calendar, Clock, X } from 'lucide-react';
 
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 import type { PersonalIncidentEntry } from '@/features/classrooms/types';
 
 /** Modal con el estado de las notificaciones de asistencia/salida de un estudiante. */
@@ -9,20 +12,16 @@ export const AttendanceNotificationsModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
   studentName: string;
-  unconfirmedAttendancesCount: number;
   activeAttendanceTab: "asistencia" | "salidas";
   setActiveAttendanceTab: (tab: "asistencia" | "salidas") => void;
   personalIncidents: PersonalIncidentEntry[];
-  onSimulateWhatsApp: (incident: PersonalIncidentEntry) => void;
 }> = ({
   isOpen,
   onClose,
   studentName,
-  unconfirmedAttendancesCount,
   activeAttendanceTab,
   setActiveAttendanceTab,
   personalIncidents,
-  onSimulateWhatsApp,
 }) => {
   return (
     <AnimatePresence>
@@ -32,7 +31,7 @@ export const AttendanceNotificationsModal: React.FC<{
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white dark:bg-slate-900 rounded-xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            className="bg-white dark:bg-slate-900 rounded-xl shadow-lg w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
           >
             <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
               <div className="flex items-center gap-3">
@@ -48,43 +47,53 @@ export const AttendanceNotificationsModal: React.FC<{
                   </p>
                 </div>
               </div>
-              <button
-                onClick={onClose}
-                className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-colors"
-              >
-                <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
-              </button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={onClose}
+                      aria-label="Cerrar"
+                      className="h-10 w-10 rounded-full text-slate-500 dark:text-slate-400"
+                    >
+                      <X className="w-5 h-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Cerrar</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
 
             <div className="p-6 overflow-y-auto flex-1">
-              {unconfirmedAttendancesCount > 0 && (
-                <div className="mb-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="text-amber-800 dark:text-amber-300 font-bold text-sm">
-                      Acción Requerida
-                    </h4>
-                    <p className="text-amber-600 dark:text-amber-400 text-xs mt-1">
-                      Hay {unconfirmedAttendancesCount} notificaciones
-                      esperando confirmación del padre/apoderado.
-                    </p>
-                  </div>
-                </div>
-              )}
-
               <div className="flex gap-2 mb-6 border-b border-slate-200 dark:border-slate-800">
-                <button
+                <Button
+                  type="button"
+                  variant="ghost"
                   onClick={() => setActiveAttendanceTab("asistencia")}
-                  className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors ${activeAttendanceTab === "asistencia" ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400" : "border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"}`}
+                  className={cn(
+                    'h-auto rounded-none border-b-2 pb-3 px-4 text-sm font-medium hover:bg-transparent dark:hover:bg-transparent',
+                    activeAttendanceTab === "asistencia"
+                      ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+                      : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300',
+                  )}
                 >
                   Asistencia
-                </button>
-                <button
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
                   onClick={() => setActiveAttendanceTab("salidas")}
-                  className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors ${activeAttendanceTab === "salidas" ? "border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400" : "border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"}`}
+                  className={cn(
+                    'h-auto rounded-none border-b-2 pb-3 px-4 text-sm font-medium hover:bg-transparent dark:hover:bg-transparent',
+                    activeAttendanceTab === "salidas"
+                      ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+                      : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300',
+                  )}
                 >
                   Salidas
-                </button>
+                </Button>
               </div>
 
               <div className="space-y-4">
@@ -140,39 +149,6 @@ export const AttendanceNotificationsModal: React.FC<{
                               {incident.description}
                             </p>
                           </div>
-                        </div>
-
-                        <div className="flex flex-col items-end gap-2 w-full sm:w-auto mt-2 sm:mt-0">
-                          <span
-                            className={`text-[10px] font-bold uppercase px-2 py-1 rounded-full flex items-center gap-1 ${incident.signatureStatus === "signed" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"}`}
-                          >
-                            {incident.signatureStatus ===
-                            "signed" ? (
-                              <CheckCircle2 className="w-3 h-3" />
-                            ) : (
-                              <Clock className="w-3 h-3" />
-                            )}
-                            {incident.signatureStatus ===
-                            "signed"
-                              ? "Confirmado por el padre"
-                              : "Esperando confirmación"}
-                          </span>
-
-                          {incident.signatureStatus ===
-                          "signed" ? (
-                            <span className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                              <Check className="w-3 h-3 text-emerald-500" />{" "}
-                              {incident.signatureDate}
-                            </span>
-                          ) : (
-                            <button
-                              onClick={() => onSimulateWhatsApp(incident)}
-                              className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
-                            >
-                              <MessageCircle className="w-3 h-3" />{" "}
-                              Simular WhatsApp
-                            </button>
-                          )}
                         </div>
                       </div>
                     ))

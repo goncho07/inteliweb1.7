@@ -2,6 +2,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, Download, X } from 'lucide-react';
 
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { modalVariants } from '@/lib/motion';
 import type { UserItem } from '@/types';
 
@@ -58,7 +60,7 @@ export const TeacherScheduleModal: React.FC<{ teacher: UserItem; onClose: () => 
         initial="hidden" 
         animate="visible" 
         exit="exit" 
-        className="w-full max-w-4xl bg-white dark:bg-slate-950 rounded-xl shadow-2xl overflow-hidden flex flex-col border border-gray-100 dark:border-slate-800" 
+        className="w-full max-w-4xl bg-white dark:bg-slate-950 rounded-xl shadow-lg overflow-hidden flex flex-col border border-gray-100 dark:border-slate-800"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-slate-800">
@@ -72,15 +74,30 @@ export const TeacherScheduleModal: React.FC<{ teacher: UserItem; onClose: () => 
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button 
+            <Button
+              type="button"
               onClick={downloadSchedulePDF}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm"
+              className="h-10 gap-2 rounded-xl bg-emerald-600 px-4 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 [&_svg]:size-4"
             >
               <Download size={16} /> Descargar PDF
-            </button>
-            <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-              <X size={24}/>
-            </button>
+            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={onClose}
+                    aria-label="Cerrar horario del docente"
+                    className="h-10 w-10 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 [&_svg]:size-6"
+                  >
+                    <X size={24}/>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Cerrar</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
 

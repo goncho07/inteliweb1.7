@@ -78,10 +78,12 @@
 
 @layer utilities {
   /* Oculta la barra de scroll manteniendo el desplazamiento. */
-  .scrollbar-hide::-webkit-scrollbar {
+  .scrollbar-hide::-webkit-scrollbar,
+  .hidden-scrollbar::-webkit-scrollbar {
     display: none;
   }
-  .scrollbar-hide {
+  .scrollbar-hide,
+  .hidden-scrollbar {
     -ms-overflow-style: none; /* IE y Edge */
     scrollbar-width: none; /* Firefox */
   }
@@ -109,39 +111,89 @@ button:active.bg-\[\#00a884\] {
  * Tema alternativo "Rojo Institucional".
  * Se activa con <html data-theme="rojo"> y remapea la escala azul a rosa/rojo
  * sin tocar el marcado de los componentes.
+ *
+ * El azul institucional no vive solo en clases `blue-*` de Tailwind: los
+ * tokens semánticos de shadcn (`--primary`, `--accent`, `--ring`, usados por
+ * `Button`, `Select`, el foco de teclado, etc.) también son ese mismo azul.
+ * Por eso el tema Rojo remapea primero los TOKENS — todo lo construido sobre
+ * `bg-primary`/`text-primary`/`ring` cambia de color automáticamente, sin
+ * reglas por clase — y solo usa la lista de clases `blue-*`/`cyan-*` de abajo
+ * como puente para las pantallas que aún no se migraron de un hex de marca a
+ * un token (ver DESIGN_SYSTEM.md § Color).
+ *
+ * Los propios valores de esa lista salen de las variables `--rojo-*`
+ * definidas aquí, no de hex repetidos: para ajustar el tono del tema Rojo se
+ * cambia una vez, en un solo sitio, en vez de perseguir cada regla.
  */
-:root[data-theme='rojo'] .text-blue-700 { color: #9f1239 !important; }
-:root[data-theme='rojo'] .text-blue-600 { color: #be123c !important; }
-:root[data-theme='rojo'] .text-blue-500 { color: #e11d48 !important; }
-:root[data-theme='rojo'] .text-blue-400 { color: #fb7185 !important; }
-:root[data-theme='rojo'] .text-cyan-500 { color: #fda4af !important; }
-:root[data-theme='rojo'] .bg-blue-600 { background-color: #be123c !important; }
-:root[data-theme='rojo'] .bg-blue-50 { background-color: #fff1f2 !important; }
-:root[data-theme='rojo'] .bg-blue-50\/80 { background-color: #fff1f2cc !important; }
-:root[data-theme='rojo'] .bg-blue-100 { background-color: #ffe4e6 !important; }
-:root[data-theme='rojo'] .border-blue-200\/50 { border-color: #fecdd380 !important; }
-:root[data-theme='rojo'] .hover\:bg-blue-700:hover { background-color: #9f1239 !important; }
-:root[data-theme='rojo'] .hover\:text-blue-300:hover { color: #fca5a5 !important; }
-:root[data-theme='rojo'] .hover\:text-blue-500:hover { color: #e11d48 !important; }
-:root[data-theme='rojo'] .hover\:text-blue-600:hover { color: #be123c !important; }
-:root[data-theme='rojo'] .border-blue-200 { border-color: #fecdd3 !important; }
-:root[data-theme='rojo'] .border-blue-600 { border-color: #be123c !important; }
-:root[data-theme='rojo'] .focus\:ring-blue-500:focus { --tw-ring-color: #e11d48 !important; }
-:root[data-theme='rojo'] .focus\:border-blue-500:focus { border-color: #e11d48 !important; }
+:root[data-theme='rojo'] {
+  --rojo-700: 345 68% 39%; /* #9f1239 */
+  --rojo-600: 345 83% 41%; /* #be123c */
+  --rojo-500: 350 89% 47%; /* #e11d48 */
+  --rojo-400: 351 90% 71%; /* #fb7185 */
+  --rojo-300: 353 96% 82%; /* #fda4af */
+  --rojo-200: 353 96% 90%; /* #fecdd3 */
+  --rojo-100: 356 100% 94%; /* #ffe4e6 */
+  --rojo-50: 355 100% 97%; /* #fff1f2 */
+
+  /* Tokens semánticos: todo componente construido sobre ellos (Button,
+     Select, foco de teclado…) sigue el tema sin reglas adicionales. */
+  --primary: var(--rojo-600);
+  --accent: var(--rojo-300);
+  --ring: var(--rojo-300);
+}
+
+:root[data-theme='rojo'] .text-blue-700 { color: hsl(var(--rojo-700)) !important; }
+:root[data-theme='rojo'] .text-blue-600 { color: hsl(var(--rojo-600)) !important; }
+:root[data-theme='rojo'] .text-blue-500 { color: hsl(var(--rojo-500)) !important; }
+:root[data-theme='rojo'] .text-blue-400 { color: hsl(var(--rojo-400)) !important; }
+:root[data-theme='rojo'] .text-cyan-500 { color: hsl(var(--rojo-300)) !important; }
+:root[data-theme='rojo'] .bg-blue-600 { background-color: hsl(var(--rojo-600)) !important; }
+:root[data-theme='rojo'] .bg-blue-50 { background-color: hsl(var(--rojo-50)) !important; }
+:root[data-theme='rojo'] .bg-blue-50\/80 { background-color: hsl(var(--rojo-50) / 0.8) !important; }
+:root[data-theme='rojo'] .bg-blue-100 { background-color: hsl(var(--rojo-100)) !important; }
+:root[data-theme='rojo'] .border-blue-200\/50 { border-color: hsl(var(--rojo-200) / 0.5) !important; }
+:root[data-theme='rojo'] .hover\:bg-blue-700:hover { background-color: hsl(var(--rojo-700)) !important; }
+:root[data-theme='rojo'] .hover\:text-blue-300:hover { color: hsl(var(--rojo-200)) !important; }
+:root[data-theme='rojo'] .hover\:text-blue-500:hover { color: hsl(var(--rojo-500)) !important; }
+:root[data-theme='rojo'] .hover\:text-blue-600:hover { color: hsl(var(--rojo-600)) !important; }
+:root[data-theme='rojo'] .border-blue-200 { border-color: hsl(var(--rojo-200)) !important; }
+:root[data-theme='rojo'] .border-blue-600 { border-color: hsl(var(--rojo-600)) !important; }
+:root[data-theme='rojo'] .focus\:ring-blue-500:focus { --tw-ring-color: hsl(var(--rojo-500)) !important; }
+:root[data-theme='rojo'] .focus\:border-blue-500:focus { border-color: hsl(var(--rojo-500)) !important; }
 :root[data-theme='rojo'] .from-blue-600 {
-  --tw-gradient-from: #be123c var(--tw-gradient-from-position) !important;
-  --tw-gradient-to: rgb(190 18 60 / 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-from: hsl(var(--rojo-600)) var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: hsl(var(--rojo-600) / 0) var(--tw-gradient-to-position) !important;
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
 }
-:root[data-theme='rojo'] .to-cyan-500 { --tw-gradient-to: #fb7185 var(--tw-gradient-to-position) !important; }
+:root[data-theme='rojo'] .to-cyan-500 { --tw-gradient-to: hsl(var(--rojo-400)) var(--tw-gradient-to-position) !important; }
 :root[data-theme='rojo'] .shadow-blue-200 {
-  --tw-shadow-color: #fecdd3 !important;
+  --tw-shadow-color: hsl(var(--rojo-200)) !important;
   --tw-shadow: var(--tw-shadow-colored) !important;
 }
-:root[data-theme='rojo'] .dark\:text-blue-400:is(.dark *) { color: #fda4af !important; }
-:root[data-theme='rojo'] .dark\:bg-blue-900\/30:is(.dark *) { background-color: rgb(159 18 57 / 0.3) !important; }
-:root[data-theme='rojo'] .dark\:bg-blue-900\/20:is(.dark *) { background-color: rgb(159 18 57 / 0.2) !important; }
-:root[data-theme='rojo'] .dark\:border-blue-800:is(.dark *) { border-color: #9f1239 !important; }
+:root[data-theme='rojo'] .bg-blue-500 { background-color: hsl(var(--rojo-500)) !important; }
+:root[data-theme='rojo'] .dark\:text-blue-400:is(.dark *) { color: hsl(var(--rojo-300)) !important; }
+:root[data-theme='rojo'] .dark\:bg-blue-400:is(.dark *) { background-color: hsl(var(--rojo-400)) !important; }
+:root[data-theme='rojo'] .dark\:bg-blue-900\/30:is(.dark *) { background-color: hsl(var(--rojo-700) / 0.3) !important; }
+:root[data-theme='rojo'] .dark\:bg-blue-900\/20:is(.dark *) { background-color: hsl(var(--rojo-700) / 0.2) !important; }
+:root[data-theme='rojo'] .dark\:bg-blue-900\/50:is(.dark *) { background-color: hsl(var(--rojo-700) / 0.5) !important; }
+:root[data-theme='rojo'] .dark\:border-blue-800:is(.dark *) { border-color: hsl(var(--rojo-700)) !important; }
+:root[data-theme='rojo'] .dark\:hover\:text-blue-300:hover:is(.dark *) { color: hsl(var(--rojo-200)) !important; }
+:root[data-theme='rojo'] .dark\:hover\:text-blue-400:hover:is(.dark *) { color: hsl(var(--rojo-300)) !important; }
+:root[data-theme='rojo'] .border-blue-100 { border-color: hsl(var(--rojo-100)) !important; }
+:root[data-theme='rojo'] .border-blue-400 { border-color: hsl(var(--rojo-400)) !important; }
+:root[data-theme='rojo'] .dark\:border-blue-400:is(.dark *) { border-color: hsl(var(--rojo-400)) !important; }
+:root[data-theme='rojo'] .dark\:border-blue-500:is(.dark *) { border-color: hsl(var(--rojo-500)) !important; }
+:root[data-theme='rojo'] .dark\:border-blue-700:is(.dark *) { border-color: hsl(var(--rojo-700)) !important; }
+:root[data-theme='rojo'] .dark\:border-blue-900:is(.dark *) { border-color: hsl(var(--rojo-700)) !important; }
+:root[data-theme='rojo'] .dark\:text-blue-300:is(.dark *) { color: hsl(var(--rojo-200)) !important; }
+:root[data-theme='rojo'] .hover\:bg-blue-100:hover { background-color: hsl(var(--rojo-100)) !important; }
+:root[data-theme='rojo'] .hover\:border-blue-300:hover { border-color: hsl(var(--rojo-200)) !important; }
+:root[data-theme='rojo'] .hover\:border-blue-600:hover { border-color: hsl(var(--rojo-600)) !important; }
+:root[data-theme='rojo'] .hover\:text-blue-700:hover { color: hsl(var(--rojo-700)) !important; }
+:root[data-theme='rojo'] .ring-blue-600 { --tw-ring-color: hsl(var(--rojo-600)) !important; }
+:root[data-theme='rojo'] .text-blue-300 { color: hsl(var(--rojo-200)) !important; }
+:root[data-theme='rojo'] .text-blue-800 { color: hsl(var(--rojo-700)) !important; }
+:root[data-theme='rojo'] .text-blue-900 { color: hsl(var(--rojo-700)) !important; }
 :root[data-theme='rojo'] .shadow-lg.shadow-blue-200 {
-  box-shadow: 0 10px 15px -3px rgb(254 205 211 / 0.5), 0 4px 6px -4px rgb(254 205 211 / 0.5) !important;
+  box-shadow: 0 10px 15px -3px hsl(var(--rojo-200) / 0.5), 0 4px 6px -4px hsl(var(--rojo-200) / 0.5) !important;
 }

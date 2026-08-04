@@ -1,16 +1,17 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { AlertTriangle, ArrowLeft, Clock, MoreVertical, Search } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { AlertTriangle, ArrowLeft, Clock } from 'lucide-react';
 
-import { getWeekString } from '@/components/calendar/CustomCalendar';
+import { ModuleBody, ModulePaneHeader } from '@/components/layout/ModuleShell';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AttendanceHeatmapCard } from '@/features/classrooms/components/student-detail/AttendanceHeatmapCard';
 import { AttendanceNotificationsModal } from '@/features/classrooms/components/student-detail/AttendanceNotificationsModal';
 import { JustifyAbsenceModal } from '@/features/classrooms/components/student-detail/JustifyAbsenceModal';
-import { ParentWhatsAppPreviewModal } from '@/features/classrooms/components/student-detail/ParentWhatsAppPreviewModal';
 import { PersonalIncidentsCard } from '@/features/classrooms/components/student-detail/PersonalIncidentsCard';
 import { RegisterIncidentModal } from '@/features/classrooms/components/student-detail/RegisterIncidentModal';
-import type { PersonalIncidentEntry } from '@/features/classrooms/types';
 import { downloadStudentReport } from '@/features/classrooms/utils';
 import { INCIDENT_TYPES } from '@/data/education';
+import { cn } from '@/lib/utils';
 import { UserItem } from '@/types';
 
 export const StudentDetail: React.FC<{
@@ -34,23 +35,10 @@ export const StudentDetail: React.FC<{
   const [activeAttendanceTab, setActiveAttendanceTab] = useState<
     "asistencia" | "salidas"
   >("asistencia");
-  const [parentViewIncident, setParentViewIncident] = useState<any>(null);
-  const [showWebhookSimulation, setShowWebhookSimulation] = useState(false);
-  // Instante en que se lanzó el webhook. Se captura al dispararlo y no en el
-  // render: leer Date.now() al pintar hace que el JSON cambie en cada repintado.
-  const [webhookTimestamp, setWebhookTimestamp] = useState(0);
   const [dayToJustify, setDayToJustify] = useState<any>(null);
   const [justificationObservation, setJustificationObservation] = useState("");
-  const [incidentSignatures, setIncidentSignatures] = useState<
-    Record<string, { status: "pending" | "signed"; date?: string; ip?: string }>
-  >({
-    "inc-1": { status: "pending" },
-    "inc-2": { status: "signed", date: "2026-03-06 14:20", ip: "192.168.1.45" },
-  });
 
   const [isRegisterIncidentModalOpen, setIsRegisterIncidentModalOpen] =
-    useState(false);
-  const [showIncidentWhatsAppPreview, setShowIncidentWhatsAppPreview] =
     useState(false);
   const [incidentForm, setIncidentForm] = useState({
     type: "",
@@ -115,25 +103,14 @@ export const StudentDetail: React.FC<{
   const [incidentsPage, setIncidentsPage] = useState(1);
 
   // Estados para el reporte del estudiante
-  const [reportPeriod, setReportPeriod] = useState<
-    "Día" | "Semana" | "Mes" | "Bimestre"
-  >("Día");
   const [reportType, setReportType] = useState<
     "Asistencia" | "Incidencias" | "Completo"
   >("Completo");
-  const [selectedReportDate, setSelectedReportDate] = useState<string>(
-    new Date().toISOString().split("T")[0],
-  );
-  const [selectedReportWeek, setSelectedReportWeek] = useState<string>(
-    getWeekString(new Date()),
-  );
   const [selectedReportMonth, setSelectedReportMonth] = useState<number>(
     new Date().getMonth() >= 2 && new Date().getMonth() <= 11
       ? new Date().getMonth()
       : 2,
   );
-  const [selectedReportBimestre, setSelectedReportBimestre] =
-    useState<number>(1);
 
   // Al cambiar de mes se vuelve a la primera página. Se ajusta durante el
   // render (patrón recomendado por React) en lugar de con un efecto, que
@@ -179,7 +156,6 @@ export const StudentDetail: React.FC<{
       .filter((d) => d.originalStatus === "Falta" || d.originalStatus === "Tardanza")
       .map((d) => {
         const isFalta = d.originalStatus === "Falta";
-        const isTardanza = d.originalStatus === "Tardanza";
         const entryId = `att-in-${d.date}`;
 
         return {
@@ -202,9 +178,6 @@ export const StudentDetail: React.FC<{
           description: d.isJustified
             ? `Justificada: ${d.justification || "Sin observación"}`
             : `Registro de ${d.originalStatus.toLowerCase()} en el sistema de asistencia.`,
-          signatureStatus: incidentSignatures[entryId]?.status || "Esperando confirmación",
-          signatureDate: incidentSignatures[entryId]?.date,
-          signatureIp: incidentSignatures[entryId]?.ip,
         };
       });
 
@@ -233,18 +206,12 @@ export const StudentDetail: React.FC<{
         type: INCIDENT_TYPES[1],
         description: "Uso indebido de celular en clase",
       }
-    ].map((inc) => ({
-      ...inc,
-      signatureStatus:
-        incidentSignatures[inc.id]?.status || "Esperando confirmación",
-      signatureDate: incidentSignatures[inc.id]?.date,
-      signatureIp: incidentSignatures[inc.id]?.ip,
-    }));
+    ];
 
     return [...mockIncidents, ...attendanceIncidents].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
     );
-  }, [student.name, selectedMonth, justifiedDays, incidentSignatures]);
+  }, [student.name, selectedMonth, justifiedDays]);
 
   const paginatedIncidents = useMemo(() => {
     const startIndex = (incidentsPage - 1) * 3;
@@ -284,14 +251,6 @@ export const StudentDetail: React.FC<{
     });
   };
 
-  const unconfirmedAttendancesCount = useMemo(() => {
-    return personalIncidents.filter(
-      (inc) =>
-        inc.id.startsWith("att-") &&
-        inc.signatureStatus === "Esperando confirmación",
-    ).length;
-  }, [personalIncidents]);
-
   const faltasCount = calendarData.filter(
     (d) => d?.originalStatus === "Falta",
   ).length;
@@ -299,157 +258,123 @@ export const StudentDetail: React.FC<{
     (d) => d?.originalStatus === "Tardanza",
   ).length;
 
-  const handleSimulateWhatsApp = (incident: PersonalIncidentEntry) => {
-    setParentViewIncident(incident);
-    setShowWebhookSimulation(false);
-  };
-
-  const handleSimulateWhatsAppFromNotifications = (incident: PersonalIncidentEntry) => {
-    setIsAttendanceNotificationsModalOpen(false);
-    setParentViewIncident(incident);
-    setShowWebhookSimulation(false);
-  };
-
-  const handleConfirmParentSignature = () => {
-    setShowWebhookSimulation(true);
-    setWebhookTimestamp(Math.floor(Date.now() / 1000));
-    setTimeout(() => {
-      setIncidentSignatures((prev) => ({
-        ...prev,
-        [parentViewIncident.id]: {
-          status: "signed",
-          date: new Date().toLocaleString("es-PE", {
-            dateStyle: "short",
-            timeStyle: "short",
-          }),
-          ip: "190.234.x.x",
-        },
-      }));
-    }, 1500);
-  };
-
   return (
-    <div className="flex-1 flex flex-col font-poppins animate-in fade-in slide-in-from-right-4 duration-500 pb-8">
-      <div className="flex flex-col relative">
-        <div className="flex-1 flex flex-col min-w-0">
-          <div className="bg-[#f0f2f5] dark:bg-[#202c33] h-[59px] px-6 flex items-center shrink-0 border-b border-slate-200 dark:border-slate-800/60 z-20 gap-4">
-            {!isParentView && (
-              <button onClick={onBack} className="text-[#54656f] dark:text-[#aebac1] hover:text-slate-800 dark:hover:text-slate-200 transition-colors">
-                <ArrowLeft className="w-5 h-5" />
-              </button>
+    <>
+      <ModulePaneHeader>
+        <div className="flex min-w-0 items-center gap-3">
+          {!isParentView && (
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Volver a la lista de estudiantes"
+                    onClick={onBack}
+                    className="h-10 w-10 shrink-0 rounded-full text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                  >
+                    <ArrowLeft size={20} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Volver</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          <div
+            className={cn(
+              'flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-base font-bold text-white shadow-sm',
+              student.avatarColor,
             )}
-            <div className="flex-1 flex items-center gap-3">
-               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm ${student.avatarColor}`}>
-                  {student.name.charAt(0)}
-               </div>
-               <div className="flex flex-col">
-                  <h2 className="font-semibold text-slate-800 dark:text-slate-200 text-[16px] leading-tight truncate">{student.name}</h2>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                      {student.grade} {student.section} • DNI: {student.dni}
-                  </span>
-               </div>
-            </div>
-            <div className="flex items-center gap-4 text-[#54656f] dark:text-[#aebac1] shrink-0">
-               <Search className="w-5 h-5 cursor-pointer hover:text-slate-600 dark:hover:text-slate-300 transition-colors" />
-               <MoreVertical className="w-5 h-5 cursor-pointer hover:text-slate-600 dark:hover:text-slate-300 transition-colors" />
-            </div>
+          >
+            {student.name.charAt(0)}
           </div>
-          <div className="p-4 sm:p-5 space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* Attendance Heatmap Card */}
-              <AttendanceHeatmapCard
-                selectedMonth={selectedMonth}
-                onPrevMonth={() =>
-                  setSelectedMonth((prev) => (prev > 2 ? prev - 1 : 11))
-                }
-                onNextMonth={() =>
-                  setSelectedMonth((prev) => (prev < 11 ? prev + 1 : 2))
-                }
-                calendarData={calendarData}
-                unconfirmedAttendancesCount={unconfirmedAttendancesCount}
-                onOpenNotifications={() =>
-                  setIsAttendanceNotificationsModalOpen(true)
-                }
-                onDownloadAttendance={() => {
-                  setReportType("Asistencia");
-                  setReportPeriod("Mes");
-                  setSelectedReportMonth(selectedMonth);
-                  setTimeout(handleDownloadPersonalReport, 0);
-                }}
-                onDayClick={handleOpenJustifyModal}
-              />
-
-              {/* Incidents Card */}
-              <PersonalIncidentsCard
-                paginatedIncidents={paginatedIncidents}
-                hasIncidents={personalIncidents.length > 0}
-                incidentsPage={incidentsPage}
-                totalIncidentPages={totalIncidentPages}
-                onPrevPage={() =>
-                  setIncidentsPage((p) => Math.max(1, p - 1))
-                }
-                onNextPage={() =>
-                  setIncidentsPage((p) =>
-                    Math.min(totalIncidentPages, p + 1),
-                  )
-                }
-                faltasCount={faltasCount}
-                tardanzasCount={tardanzasCount}
-                onDownloadIncidents={() => {
-                  setReportType("Incidencias");
-                  setReportPeriod("Mes");
-                  setSelectedReportMonth(selectedMonth);
-                  setTimeout(handleDownloadPersonalReport, 0);
-                }}
-                onSimulateWhatsApp={handleSimulateWhatsApp}
-              />
-            </div>
-
-            {/* MODAL DE JUSTIFICACIÓN */}
-            <JustifyAbsenceModal
-              isOpen={isJustifyModalOpen}
-              onClose={() => setIsJustifyModalOpen(false)}
-              dayToJustify={dayToJustify}
-              studentName={student.name}
-              justificationObservation={justificationObservation}
-              setJustificationObservation={setJustificationObservation}
-              onConfirm={handleConfirmJustification}
-            />
-
-            {/* VISTA WHATSAPP MODAL */}
-            <ParentWhatsAppPreviewModal
-              incident={parentViewIncident}
-              studentName={student.name}
-              onClose={() => setParentViewIncident(null)}
-              incidentSignatures={incidentSignatures}
-              showWebhookSimulation={showWebhookSimulation}
-              webhookTimestamp={webhookTimestamp}
-              onConfirmSignature={handleConfirmParentSignature}
-            />
-
-            {/* Registrar Incidencia Modal with WhatsApp Preview */}
-            <RegisterIncidentModal
-              isOpen={isRegisterIncidentModalOpen}
-              onClose={() => setIsRegisterIncidentModalOpen(false)}
-              student={student}
-              incidentForm={incidentForm}
-              setIncidentForm={setIncidentForm}
-            />
-
-            {/* Attendance Notifications Modal */}
-            <AttendanceNotificationsModal
-              isOpen={isAttendanceNotificationsModalOpen}
-              onClose={() => setIsAttendanceNotificationsModalOpen(false)}
-              studentName={student.name}
-              unconfirmedAttendancesCount={unconfirmedAttendancesCount}
-              activeAttendanceTab={activeAttendanceTab}
-              setActiveAttendanceTab={setActiveAttendanceTab}
-              personalIncidents={personalIncidents}
-              onSimulateWhatsApp={handleSimulateWhatsAppFromNotifications}
-            />
+          <div className="min-w-0">
+            <p className="truncate text-lg font-bold text-slate-800 dark:text-white">{student.name}</p>
+            <p className="truncate text-sm text-slate-500 dark:text-slate-400">
+              {`${student.grade} ${student.section} • DNI: ${student.dni}`}
+            </p>
           </div>
         </div>
-      </div>
-    </div>
+      </ModulePaneHeader>
+
+      <ModuleBody centered>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Attendance Heatmap Card */}
+          <AttendanceHeatmapCard
+            selectedMonth={selectedMonth}
+            onPrevMonth={() =>
+              setSelectedMonth((prev) => (prev > 2 ? prev - 1 : 11))
+            }
+            onNextMonth={() =>
+              setSelectedMonth((prev) => (prev < 11 ? prev + 1 : 2))
+            }
+            calendarData={calendarData}
+            onOpenNotifications={() =>
+              setIsAttendanceNotificationsModalOpen(true)
+            }
+            onDownloadAttendance={() => {
+              setReportType("Asistencia");
+              setSelectedReportMonth(selectedMonth);
+              setTimeout(handleDownloadPersonalReport, 0);
+            }}
+            onDayClick={handleOpenJustifyModal}
+            canJustify={!isParentView}
+          />
+
+          {/* Incidents Card */}
+          <PersonalIncidentsCard
+            paginatedIncidents={paginatedIncidents}
+            hasIncidents={personalIncidents.length > 0}
+            incidentsPage={incidentsPage}
+            totalIncidentPages={totalIncidentPages}
+            onPrevPage={() =>
+              setIncidentsPage((p) => Math.max(1, p - 1))
+            }
+            onNextPage={() =>
+              setIncidentsPage((p) =>
+                Math.min(totalIncidentPages, p + 1),
+              )
+            }
+            faltasCount={faltasCount}
+            tardanzasCount={tardanzasCount}
+            onDownloadIncidents={() => {
+              setReportType("Incidencias");
+              setSelectedReportMonth(selectedMonth);
+              setTimeout(handleDownloadPersonalReport, 0);
+            }}
+          />
+        </div>
+
+        {/* MODAL DE JUSTIFICACIÓN */}
+        <JustifyAbsenceModal
+          isOpen={isJustifyModalOpen}
+          onClose={() => setIsJustifyModalOpen(false)}
+          dayToJustify={dayToJustify}
+          studentName={student.name}
+          justificationObservation={justificationObservation}
+          setJustificationObservation={setJustificationObservation}
+          onConfirm={handleConfirmJustification}
+        />
+
+        {/* Registrar Incidencia Modal */}
+        <RegisterIncidentModal
+          isOpen={isRegisterIncidentModalOpen}
+          onClose={() => setIsRegisterIncidentModalOpen(false)}
+          student={student}
+          incidentForm={incidentForm}
+          setIncidentForm={setIncidentForm}
+        />
+
+        {/* Attendance Notifications Modal */}
+        <AttendanceNotificationsModal
+          isOpen={isAttendanceNotificationsModalOpen}
+          onClose={() => setIsAttendanceNotificationsModalOpen(false)}
+          studentName={student.name}
+          activeAttendanceTab={activeAttendanceTab}
+          setActiveAttendanceTab={setActiveAttendanceTab}
+          personalIncidents={personalIncidents}
+        />
+      </ModuleBody>
+    </>
   );
 };

@@ -1,6 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 
+import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+
 interface CustomCalendarProps {
   mode: 'date' | 'week';
   value: string;
@@ -147,58 +157,101 @@ export const CustomCalendar: React.FC<CustomCalendarProps> = ({ mode, value, onC
 
   return (
     <div className="relative" ref={containerRef}>
-      <button
+      <Button
         type="button"
+        variant="outline"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full sm:w-auto min-w-[200px] h-[52px] bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-[20px] px-5 text-base font-bold text-slate-700 dark:text-slate-200 hover:border-blue-500/50 hover:bg-blue-50/30 dark:hover:bg-blue-900/10 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all flex items-center justify-between gap-3 shadow-sm overflow-hidden"
+        className="h-[52px] w-full min-w-[200px] justify-between gap-3 overflow-hidden rounded-xl border-2 border-slate-100 bg-white px-5 text-base font-bold text-slate-700 shadow-sm outline-none transition-all hover:border-blue-500/50 hover:bg-blue-50/30 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:w-auto dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-blue-900/10"
       >
         <span className="truncate">{displayValue}</span>
         <CalendarIcon size={18} className="text-slate-400 dark:text-slate-500 shrink-0" />
-      </button>
+      </Button>
 
       {isOpen && (
-        <div className={`absolute top-[calc(100%+8px)] ${align === 'right' ? 'right-0' : 'left-0'} z-50 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-[20px] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] p-5 w-[340px] max-w-[calc(100vw-2rem)] animate-in fade-in slide-in-from-top-1`}>
+        <div className={`absolute top-[calc(100%+8px)] ${align === 'right' ? 'right-0' : 'left-0'} z-50 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] p-4 w-[340px] max-w-[calc(100vw-2rem)] animate-in fade-in slide-in-from-top-1`}>
           {/* Header */}
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
-              <div className="relative">
-                <select 
-                  value={month} 
-                  onChange={(e) => setCurrentDate(new Date(year, Number(e.target.value), 1))}
-                  className="bg-transparent text-slate-800 dark:text-slate-100 font-bold text-base outline-none cursor-pointer appearance-none pr-4 pl-1 py-1 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              <Select
+                value={String(month)}
+                onValueChange={(v) => setCurrentDate(new Date(year, Number(v), 1))}
+              >
+                <SelectTrigger
+                  aria-label="Mes"
+                  className="h-10 w-auto gap-1 rounded-lg border-none bg-transparent px-2 text-base font-bold text-slate-800 shadow-none hover:bg-slate-50 focus:ring-0 focus:ring-offset-0 dark:text-slate-100 dark:hover:bg-slate-800"
                 >
-                  {MONTHS.map((m, i) => <option key={i} value={i} className="text-slate-900 dark:text-slate-900">{m}</option>)}
-                </select>
-              </div>
-              <div className="relative">
-                <select 
-                  value={year} 
-                  onChange={(e) => setCurrentDate(new Date(Number(e.target.value), month, 1))}
-                  className="bg-transparent text-slate-800 dark:text-slate-100 font-bold text-base outline-none cursor-pointer appearance-none pr-4 pl-1 py-1 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MONTHS.map((m, i) => (
+                    <SelectItem key={i} value={String(i)}>
+                      {m}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={String(year)}
+                onValueChange={(v) => setCurrentDate(new Date(Number(v), month, 1))}
+              >
+                <SelectTrigger
+                  aria-label="Año"
+                  className="h-10 w-auto gap-1 rounded-lg border-none bg-transparent px-2 text-base font-bold text-slate-800 shadow-none hover:bg-slate-50 focus:ring-0 focus:ring-offset-0 dark:text-slate-100 dark:hover:bg-slate-800"
                 >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
                   {Array.from({ length: 10 }).map((_, i) => {
                     const y = new Date().getFullYear() - 5 + i;
-                    return <option key={y} value={y} className="text-slate-900 dark:text-slate-900">{y}</option>;
+                    return (
+                      <SelectItem key={y} value={String(y)}>
+                        {y}
+                      </SelectItem>
+                    );
                   })}
-                </select>
-              </div>
+                </SelectContent>
+              </Select>
             </div>
-            <div className="flex gap-1 shrink-0">
-              <button onClick={prevMonth} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors group">
-                <ChevronLeft size={18} className="text-slate-500 group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-200" />
-              </button>
-              <button onClick={nextMonth} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors group">
-                <ChevronRight size={18} className="text-slate-500 group-hover:text-slate-700 dark:text-slate-400 dark:group-hover:text-slate-200" />
-              </button>
+            <div className="flex shrink-0 gap-1">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={prevMonth}
+                    aria-label="Mes anterior"
+                    className="group h-10 w-10 rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                  >
+                    <ChevronLeft size={18} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Mes anterior</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={nextMonth}
+                    aria-label="Mes siguiente"
+                    className="group h-10 w-10 rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+                  >
+                    <ChevronRight size={18} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Mes siguiente</TooltipContent>
+              </Tooltip>
             </div>
           </div>
 
           {/* Days Header */}
           <div className="flex mb-3">
-            {mode === 'week' && <div className="w-10 text-center text-[10px] font-black tracking-widest text-slate-400 dark:text-slate-500 uppercase">Sem</div>}
+            {mode === 'week' && <div className="w-10 text-center text-xs font-black tracking-widest text-slate-400 dark:text-slate-500 uppercase">Sem</div>}
             <div className="flex-1 grid grid-cols-7 gap-1">
               {DAYS.map(day => (
-                <div key={day} className="text-center text-[10px] font-black tracking-widest text-slate-400 dark:text-slate-500 uppercase">
+                <div key={day} className="text-center text-xs font-black tracking-widest text-slate-400 dark:text-slate-500 uppercase">
                   {day}
                 </div>
               ))}
@@ -233,21 +286,24 @@ export const CustomCalendar: React.FC<CustomCalendarProps> = ({ mode, value, onC
                       const isToday = day === new Date().getDate() && month === new Date().getMonth() && year === new Date().getFullYear();
 
                       return (
-                        <button
+                        <Button
                           key={day}
+                          type="button"
+                          variant="ghost"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDayClick(day);
                           }}
-                          className={`aspect-square w-full flex items-center justify-center text-[13px] font-bold transition-all relative z-10
-                            ${daySelected ? 'bg-blue-600 text-white rounded-lg shadow-md shadow-blue-500/30 scale-110' : ''}
-                            ${!daySelected && weekSelected ? 'text-blue-700 dark:text-blue-300' : ''}
-                            ${!daySelected && !weekSelected && isToday ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 rounded-lg' : ''}
-                            ${!daySelected && !weekSelected && !isToday ? 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg' : ''}
+                          aria-label={`Seleccionar ${day} de ${MONTHS[month]} de ${year}`}
+                          className={`relative z-10 aspect-square h-auto w-full p-0 text-sm font-bold transition-all
+                            ${daySelected ? 'scale-110 rounded-lg bg-blue-600 text-white shadow-md shadow-blue-500/30 hover:bg-blue-600 hover:text-white' : ''}
+                            ${!daySelected && weekSelected ? 'text-blue-700 hover:bg-transparent dark:text-blue-300' : ''}
+                            ${!daySelected && !weekSelected && isToday ? 'rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/30' : ''}
+                            ${!daySelected && !weekSelected && !isToday ? 'rounded-lg text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800' : ''}
                           `}
                         >
                           {day}
-                        </button>
+                        </Button>
                       );
                     })}
                   </div>
@@ -258,12 +314,22 @@ export const CustomCalendar: React.FC<CustomCalendarProps> = ({ mode, value, onC
 
           {/* Footer */}
           <div className="flex items-center justify-between mt-5 pt-4 border-t border-slate-100 dark:border-slate-800">
-            <button onClick={handleClear} className="text-sm font-bold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={handleClear}
+              className="h-auto rounded-lg px-3 py-1.5 text-sm font-bold text-slate-500 hover:bg-slate-50 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+            >
               Limpiar
-            </button>
-            <button onClick={handleToday} className="text-sm font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors px-3 py-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30">
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={handleToday}
+              className="h-auto rounded-lg px-3 py-1.5 text-sm font-bold text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/30 dark:hover:text-blue-300"
+            >
               {mode === 'date' ? 'Hoy' : 'Esta semana'}
-            </button>
+            </Button>
           </div>
         </div>
       )}

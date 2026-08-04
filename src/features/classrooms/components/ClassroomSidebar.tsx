@@ -1,215 +1,249 @@
-import React, { useState, useEffect } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronLeft, School } from 'lucide-react';
-import { EDUCATIONAL_STRUCTURE } from '@/data/education';
+import React, { useMemo, useState } from 'react';
+import { BookOpen, ChevronDown, ChevronRight, Folder, GraduationCap } from 'lucide-react';
 
+import { ModuleSidebar } from '@/components/layout/ModuleShell';
+import { Button } from '@/components/ui/button';
+import { AcademicDatesPopover } from '@/features/classrooms/components/overview/AcademicDatesPopover';
+import { ClassroomRosterPanel } from '@/features/classrooms/components/ClassroomRosterPanel';
+import { getSectionSize } from '@/data/education';
+import { useSession } from '@/features/auth/SessionContext';
+import { visibleClassroomTree } from '@/features/auth/scope';
+import type { ClassroomRef } from '@/features/classrooms/types';
+import { cn } from '@/lib/utils';
+import { UserItem } from '@/types';
+
+interface LevelGroup {
+  level: string;
+  gradeGroups: {
+    key: string;
+    label: string;
+    totalCount: number;
+    sections: { key: string; label: string; count: number }[];
+  }[];
+  sectionCount: number;
+  totalStudents: number;
+}
+
+/**
+ * Construye las tarjetas de nivel a partir del árbol nivel → grado → sección
+ * que corresponde a la sesión (`visibleClassroomTree`): para directivo y
+ * auxiliar es siempre Secundaria (igual que hoy); para un docente, el único
+ * nivel de sus aulas asignadas, ya recortado a sus propios grados y
+ * secciones (`assignTeacherClassrooms` en `data/users.ts` nunca reparte
+ * aulas de más de un nivel a un mismo docente).
+ */
+const buildLevelGroups = (tree: Record<string, Record<string, string[]>>): LevelGroup[] =>
+  Object.entries(tree).map(([level, grades]) => {
+    const gradeGroups = Object.entries(grades).map(([grade, sections]) => ({
+      key: grade,
+      label: grade,
+      totalCount: sections.reduce((sum, section) => sum + getSectionSize(level, grade, section), 0),
+      sections: sections.map((section) => ({
+        key: section,
+        label: `${grade.replace('° Grado', '°')} ${section}`,
+        count: getSectionSize(level, grade, section),
+      })),
+    }));
+
+    return {
+      level,
+      gradeGroups,
+      sectionCount: gradeGroups.reduce((sum, g) => sum + g.sections.length, 0),
+      totalStudents: gradeGroups.reduce((sum, g) => sum + g.totalCount, 0),
+    };
+  });
+
+const isSameClassroom = (a: ClassroomRef | null, b: ClassroomRef) =>
+  !!a && a.level === b.level && a.grade === b.grade && a.section === b.section;
+
+/**
+ * Sidebar del módulo: carpetas Grado → Sección de Secundaria. Elegir una
+ * sección la despliega en el sitio —`ClassroomRosterPanel` aparece debajo de
+ * su fila— para que el árbol de niveles nunca desaparezca de la vista.
+ */
 export const ClassroomSidebar: React.FC<{
-  selectedLevel: string;
-  setSelectedLevel: (level: string) => void;
-  selectedGrade: string;
-  setSelectedGrade: (grade: string) => void;
-  selectedClassroom: any;
-  onSelectClassroom: (c: { level: string; grade: string; section: string } | null) => void;
-  onActionReportes?: () => void;
-  onActionIncidencias?: () => void;
-  onActionComunicados?: () => void;
-}> = ({ selectedLevel, setSelectedLevel, selectedGrade, setSelectedGrade, selectedClassroom, onSelectClassroom, onActionReportes, onActionIncidencias, onActionComunicados }) => {
-  const [contextMenu, setContextMenu] = useState<{ section: string; x: number; y: number } | null>(null);
+  expandedClassroom: ClassroomRef | null;
+  onToggleClassroom: (classroom: ClassroomRef) => void;
+  selectedStudent: UserItem | null;
+  onSelectStudent: (classroom: ClassroomRef, student: UserItem) => void;
+  isOverviewOpen: boolean;
+  onOpenOverview: (classroom: ClassroomRef) => void;
+}> = ({ expandedClassroom, onToggleClassroom, selectedStudent, onSelectStudent, isOverviewOpen, onOpenOverview }) => {
+  const session = useSession();
 
-  useEffect(() => {
-    const handleClickOutside = () => setContextMenu(null);
-    window.addEventListener('click', handleClickOutside);
-    return () => window.removeEventListener('click', handleClickOutside);
-  }, []);
+  const levelGroups = useMemo(() => {
+    const tree = visibleClassroomTree(session);
+    // Directivo y auxiliar ven todo el colegio, pero el árbol de Aulas sigue
+    // mostrando solo Secundaria (igual que hoy); un docente ve el único
+    // nivel de sus aulas asignadas.
+    const scopedTree = session.classrooms === null ? { Secundaria: tree.Secundaria ?? {} } : tree;
+    return buildLevelGroups(scopedTree);
+  }, [session]);
+
+  const allGroupKeys = useMemo(
+    () => levelGroups.flatMap((level) => level.gradeGroups.map((g) => `${level.level}-${g.key}`)),
+    [levelGroups],
+  );
+
+  const [openGrades, setOpenGrades] = useState<Record<string, boolean>>(() =>
+    expandedClassroom ? { [`${expandedClassroom.level}-${expandedClassroom.grade}`]: true } : {},
+  );
+
+  const isGradeOpenFor = (level: string, grade: string) => {
+    const key = `${level}-${grade}`;
+    return !!openGrades[key] || (grade === expandedClassroom?.grade && level === expandedClassroom?.level);
+  };
+  const toggleGrade = (level: string, grade: string) => {
+    const key = `${level}-${grade}`;
+    const isOpen = isGradeOpenFor(level, grade);
+    // Cerrar el grado que contiene el aula desplegada también repliega su lista de alumnos.
+    if (isOpen && expandedClassroom?.grade === grade && expandedClassroom?.level === level) {
+      onToggleClassroom(expandedClassroom);
+    }
+    setOpenGrades((prev) => ({ ...prev, [key]: !isOpen }));
+  };
+  const expandAll = () => setOpenGrades(Object.fromEntries(allGroupKeys.map((key) => [key, true])));
 
   return (
-    <div className={`w-full sm:w-[350px] md:w-[400px] bg-white dark:bg-[#111b21] flex flex-col shrink-0 overflow-hidden border-r border-slate-200 dark:border-slate-800/60 z-10 ${selectedClassroom ? 'hidden lg:flex' : 'flex'}`}>
-      {selectedLevel === "Todos" ? (
-        <>
-          <div className="bg-[#f0f2f5] dark:bg-[#202c33] h-[59px] px-4 flex items-center justify-between shrink-0 border-b border-slate-200 dark:border-slate-800/60">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-700 dark:text-blue-400 shrink-0">
-                <School className="w-5 h-5" />
-              </div>
-              <h1 className="font-semibold text-slate-800 dark:text-slate-200 text-[15px]">Niveles Educativos</h1>
+    <ModuleSidebar title="Aulas" icon={BookOpen} actions={<AcademicDatesPopover />}>
+      <div className="hidden-scrollbar flex-1 space-y-3 overflow-y-auto p-3">
+        {levelGroups.length === 0 && (
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800">
+              <GraduationCap size={20} strokeWidth={2} />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-700 dark:text-slate-200">No tiene aulas asignadas</p>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Contacte a Dirección para que le asignen una sección a cargo.
+              </p>
             </div>
           </div>
-          <div className="flex flex-col gap-4 overflow-y-auto hidden-scrollbar px-4 pt-4 pb-4 bg-white dark:bg-[#111b21] h-full">
-            {/* Primaria (Proximamente) */}
-            <button
-               disabled
-               className="bg-slate-100 dark:bg-slate-800/40 opacity-70 cursor-not-allowed rounded-[24px] border-2 border-slate-200 dark:border-slate-700/50 p-5 flex flex-row items-center gap-5 text-left shadow-sm transition-all group relative"
-            >
-               <div className="absolute top-3 right-3 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[11px] font-bold px-2 py-1 rounded-full uppercase tracking-wider">
-                  Próximamente
-               </div>
-               <div className="w-16 h-16 shrink-0 flex items-center justify-center bg-white/50 dark:bg-slate-900/50 rounded-[16px] grayscale">
-                  <img
-                    src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Backpack.png"
-                    alt="primaria"
-                    className="w-[40px] h-[40px] object-contain drop-shadow-sm"
-                  />
-               </div>
-               <div className="flex flex-col flex-1 min-w-0 justify-center">
-                  <h4 className="font-extrabold text-[#1A2642] dark:text-white text-[18px] mb-1">
-                    Primaria
-                  </h4>
-                  
-               </div>
-            </button>
-            {/* Secundaria */}
-            <button
-              onClick={() => setSelectedLevel("Secundaria")}
-              className="bg-blue-50/80 dark:bg-blue-900/20 rounded-[24px] border-2 border-blue-100/50 dark:border-blue-800/30 p-5 flex flex-row items-center gap-5 text-left shadow-sm hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md transition-all group"
-            >
-              <div className="w-16 h-16 shrink-0 transition-transform group-hover:scale-110 flex items-center justify-center bg-white/50 dark:bg-slate-900/50 rounded-[16px]">
-                  <img
-                    src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Graduation%20Cap.png"
-                    alt="secundaria"
-                    className="w-[40px] h-[40px] object-contain drop-shadow-sm"
-                  />
+        )}
+
+        {levelGroups.map((levelGroup) => (
+          <div key={levelGroup.level} className="space-y-3 rounded-2xl bg-white p-3 dark:bg-slate-900">
+            <div className="flex items-center gap-3 px-1">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400">
+                <GraduationCap size={18} strokeWidth={2} />
               </div>
-              <div className="flex flex-col flex-1 min-w-0 justify-center">
-                  <h4 className="font-extrabold text-[#1A2642] dark:text-white text-[18px] mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                    Secundaria
-                  </h4>
-                  <div className="flex flex-col text-[14px] text-blue-600/80 dark:text-blue-400 font-bold leading-tight mt-0.5 space-y-0.5">
-                    <span className="flex items-center">5 Grados</span>
-                    <span className="flex items-center">34 Secciones</span>
-                  </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-bold text-slate-800 dark:text-white">{levelGroup.level}</p>
+                <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                  {levelGroup.gradeGroups.length} {levelGroup.gradeGroups.length === 1 ? 'grado' : 'grados'} •{' '}
+                  {levelGroup.sectionCount} {levelGroup.sectionCount === 1 ? 'sección' : 'secciones'} (
+                  {levelGroup.totalStudents.toLocaleString('es-PE')} est.)
+                </p>
               </div>
-            </button>
-          </div>
-        </>
-      ) : selectedGrade === "Todos" ? (
-        <>
-          <div className="bg-[#f0f2f5] dark:bg-[#202c33] h-[59px] px-4 flex items-center justify-between shrink-0 border-b border-slate-200 dark:border-slate-800/60">
-            <button
-              onClick={() => setSelectedLevel("Todos")}
-              className="flex items-center gap-2 font-semibold text-[#54656f] dark:text-[#aebac1] hover:text-slate-800 dark:hover:text-slate-200 transition-colors text-[15px]"
-            >
-              <ChevronLeft className="w-5 h-5" /> Niveles Educativos
-            </button>
-          </div>
-          <div className="flex flex-col gap-4 overflow-y-auto hidden-scrollbar px-4 pt-4 pb-4 bg-white dark:bg-[#111b21] h-full">
-            {Object.keys(EDUCATIONAL_STRUCTURE[selectedLevel] || {}).map((grade) => (
-              <button
-                key={grade}
-                onClick={() => setSelectedGrade(grade)}
-                className="bg-blue-50/80 dark:bg-blue-900/20 rounded-[24px] border-2 border-blue-100/50 dark:border-blue-800/30 p-5 flex flex-row items-center gap-5 text-left shadow-sm hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md transition-all group"
-              >
-                <div className="w-16 h-16 shrink-0 transition-transform group-hover:scale-110 flex items-center justify-center bg-white/50 dark:bg-slate-900/50 rounded-[16px]">
-                  <img
-                    src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Books.png"
-                    alt="books"
-                    className="w-[40px] h-[40px] object-contain drop-shadow-sm"
-                  />
-                </div>
-                <div className="flex flex-col flex-1 min-w-0 justify-center">
-                  <h4 className="font-extrabold text-[#1A2642] dark:text-white text-[18px] mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                    {grade}
-                  </h4>
-                  <div className="flex flex-col text-[14px] text-blue-600/80 dark:text-blue-400 font-bold leading-tight mt-0.5 space-y-0.5">
-                    <span className="flex items-center">Alumnos: {((EDUCATIONAL_STRUCTURE[selectedLevel][grade]?.length || 0) * 30)}</span>
-                    <span className="flex items-center">Docentes: 7 • Aux: 2</span>
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="bg-slate-100/50 dark:bg-slate-800/30 p-4 border-b border-slate-200 dark:border-slate-700/50 -mx-4 -mt-4 mb-4 flex items-center justify-between">
-            <button
-              onClick={() => {
-                setSelectedGrade("Todos");
-                onSelectClassroom(null);
-              }}
-              className="flex items-center gap-2 font-bold text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-[15px]"
-            >
-              <ChevronLeft className="w-5 h-5" /> {selectedGrade}
-            </button>
-          </div>
-          <div className="flex flex-col gap-4 overflow-y-auto hidden-scrollbar px-4 pt-4 pb-4 bg-white dark:bg-[#111b21] h-full">
-            {Array.isArray(EDUCATIONAL_STRUCTURE[selectedLevel]?.[selectedGrade]) && EDUCATIONAL_STRUCTURE[selectedLevel][selectedGrade].map((section, idx) => {
-              const isSelected =
-                selectedClassroom?.section === section && selectedClassroom?.grade === selectedGrade && selectedClassroom?.level === selectedLevel;
-              return (
-                <div key={section} className="flex flex-col gap-2 relative">
-                  <button
-                    onClick={() =>
-                      onSelectClassroom({ level: selectedLevel, grade: selectedGrade, section })
-                    }
-                    onContextMenu={(e) => {
-                      e.preventDefault();
-                      setContextMenu({ section, x: e.clientX, y: e.clientY });
-                    }}
-                    className={`rounded-[24px] border-2 p-5 flex flex-row items-center gap-5 text-left shadow-sm transition-all group ${
-                      isSelected
-                        ? "bg-blue-50/80 dark:bg-blue-900/20 border-blue-400 dark:border-blue-500 ring-1 ring-blue-400/20"
-                        : "bg-blue-50/80 dark:bg-blue-900/20 border-blue-100/50 dark:border-blue-800/30 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md"
-                    }`}
-                  >
-                    <div className={`w-16 h-16 shrink-0 transition-transform group-hover:scale-110 flex items-center justify-center rounded-[16px] bg-white/50 dark:bg-slate-900/50`}>
-                      <img
-                        src={`https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/${["Blue%20Book.png", "Green%20Book.png", "Orange%20Book.png", "Closed%20Book.png"][idx % 4]}`}
-                        alt="book"
-                        className="w-[40px] h-[40px] object-contain drop-shadow-sm"
-                      />
-                    </div>
-                    <div className="flex flex-col flex-1 min-w-0 justify-center">
-                      <h4
-                        className={`font-extrabold text-[#1A2642] dark:text-white text-[18px] mb-1 transition-colors ${
-                          isSelected ? "text-blue-700 dark:text-blue-400" : "group-hover:text-blue-600 dark:group-hover:text-blue-400"
-                        }`}
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between px-1">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  Carpetas por grado
+                </p>
+                <Button
+                  type="button"
+                  variant="link"
+                  onClick={expandAll}
+                  className="h-10 px-2 text-xs font-semibold text-blue-700 dark:text-blue-400"
+                >
+                  Ver todo
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                {levelGroup.gradeGroups.map((group) => {
+                  const isGradeOpen = isGradeOpenFor(levelGroup.level, group.key);
+                  return (
+                    <div key={group.key} className="rounded-xl border border-slate-200 dark:border-slate-800">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => toggleGrade(levelGroup.level, group.key)}
+                        aria-expanded={isGradeOpen}
+                        className="h-11 w-full justify-between gap-2 rounded-xl px-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50"
                       >
-                        {selectedGrade.replace("° Grado", "°")} {section}
-                      </h4>
-                      <div className="flex flex-col text-[14px] text-blue-600/80 dark:text-blue-400 font-bold leading-tight mt-0.5 space-y-0.5">
-                        <span className="flex items-center w-full">Alumnos: 30</span>
-                        <span className="flex items-center w-full truncate w-[100%] leading-tight text-[13px]">Tutor: Asignado</span>
-                      </div>
+                        <span className="flex min-w-0 items-center gap-2">
+                          {isGradeOpen ? (
+                            <ChevronDown size={16} strokeWidth={2} className="shrink-0 text-slate-400" />
+                          ) : (
+                            <ChevronRight size={16} strokeWidth={2} className="shrink-0 text-slate-400" />
+                          )}
+                          <span className="truncate text-sm font-bold text-slate-800 dark:text-white">{group.label}</span>
+                        </span>
+                        <span className="shrink-0 text-xs font-semibold text-slate-400 dark:text-slate-500">
+                          {group.totalCount} est.
+                        </span>
+                      </Button>
+
+                      {isGradeOpen && (
+                        <div className="space-y-1 border-t border-slate-100 p-2 dark:border-slate-800">
+                          {group.sections.map((section) => {
+                            const classroom: ClassroomRef = {
+                              level: levelGroup.level,
+                              grade: group.key,
+                              section: section.key,
+                            };
+                            const isExpanded = isSameClassroom(expandedClassroom, classroom);
+                            return (
+                              <div key={section.key} className="space-y-1">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  onClick={() => onToggleClassroom(classroom)}
+                                  aria-expanded={isExpanded}
+                                  className={cn(
+                                    'h-10 w-full justify-between gap-2 rounded-lg px-3 text-left',
+                                    isExpanded
+                                      ? 'bg-blue-50 text-blue-700 hover:bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400'
+                                      : 'text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50',
+                                  )}
+                                >
+                                  <span className="flex min-w-0 items-center gap-2">
+                                    {isExpanded ? (
+                                      <ChevronDown size={16} strokeWidth={2} className="shrink-0" />
+                                    ) : (
+                                      <Folder size={16} strokeWidth={2} className="shrink-0" />
+                                    )}
+                                    <span className={cn('truncate text-sm', isExpanded ? 'font-semibold' : 'font-medium')}>
+                                      {section.label}
+                                    </span>
+                                  </span>
+                                  <span
+                                    className={cn(
+                                      'shrink-0 rounded-full px-2 py-0.5 text-xs font-bold',
+                                      isExpanded
+                                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                                        : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
+                                    )}
+                                  >
+                                    {section.count}
+                                  </span>
+                                </Button>
+
+                                {isExpanded && (
+                                  <ClassroomRosterPanel
+                                    classroom={classroom}
+                                    selectedStudent={selectedStudent}
+                                    onSelectStudent={(student) => onSelectStudent(classroom, student)}
+                                    isOverviewOpen={isOverviewOpen}
+                                    onOpenOverview={() => onOpenOverview(classroom)}
+                                  />
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                  </button>
-                  <AnimatePresence>
-                    {contextMenu?.section === section && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                        className="absolute top-[80%] left-10 z-50 w-48 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl overflow-hidden py-1"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <button
-                          onClick={() => {
-                            onSelectClassroom({ level: selectedLevel, grade: selectedGrade, section });
-                            if (onActionReportes) onActionReportes();
-                            setContextMenu(null);
-                          }}
-                          className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-700/50 flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300 transition-colors"
-                        >
-                          <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/File%20Folder.png" alt="Reportes" className="w-[16px] h-[16px]" /> Reportes
-                        </button>
-                        <button
-                          onClick={() => {
-                            onSelectClassroom({ level: selectedLevel, grade: selectedGrade, section });
-                            if (onActionIncidencias) onActionIncidencias();
-                            setContextMenu(null);
-                          }}
-                          className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-700/50 flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300 transition-colors"
-                        >
-                          <img src="https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Objects/Open%20Mailbox%20with%20Raised%20Flag.png" alt="Incidencias" className="w-[16px] h-[16px]" /> Incidencias
-                        </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+            </div>
           </div>
-        </>
-      )}
-    </div>
+        ))}
+      </div>
+    </ModuleSidebar>
   );
 };

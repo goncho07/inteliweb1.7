@@ -31,6 +31,7 @@ export const EVENTS_2026: Record<string, CalendarEvent[]> = {
   "2-14": [{ label: "Nac. Albert Einstein", type: "civico" }],
   "2-15": [{ label: "Día Derechos Consumidor", type: "civico" }],
   "2-16": [{ label: "INICIO AÑO ESCOLAR / I BIMESTRE", type: "academico" }],
+  "2-18": [{ label: "Simulacro de Sismo", type: "gestion" }],
   "2-21": [{ label: "Día Síndrome de Down", type: "civico" }],
   "2-22": [{ label: "Día Mundial del Agua", type: "civico" }],
   "2-24": [{ label: "Lucha contra TBC", type: "civico" }],
@@ -167,6 +168,25 @@ export const EVENTS_2026: Record<string, CalendarEvent[]> = {
 
 export const CITATIONS_2026: Record<string, CalendarEvent[]> = {
   // MARZO (Month 2)
+  // March 18 is Wed. Miercoles libre 09:30 AM
+  "2-18": [
+    {
+      label: "Citación Madre de Valentina S.",
+      type: "academico",
+      time: "09:30 AM",
+      student: "Valentina Soto",
+      parent: "Carla Soto",
+      reason: "Adaptación al año escolar",
+    },
+    {
+      label: "Citación Padre de Diego H.",
+      type: "incidencia",
+      time: "12:45 PM",
+      student: "Diego Huamán",
+      parent: "Jorge Huamán",
+      reason: "Conducta en recreo",
+    },
+  ],
   // March 2 is Monday. Lunes libre 11:15 AM
   "2-2": [
     {

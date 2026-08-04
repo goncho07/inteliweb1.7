@@ -2,6 +2,9 @@ import React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AlertTriangle, Check, ShieldCheck, X } from 'lucide-react';
 
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
 /** Modal para justificar una falta o tardanza del calendario de asistencia. */
 export const JustifyAbsenceModal: React.FC<{
   isOpen: boolean;
@@ -35,7 +38,7 @@ export const JustifyAbsenceModal: React.FC<{
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-800 overflow-hidden"
+            className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-gray-100 dark:border-slate-800 overflow-hidden"
           >
             <div className="p-8">
               <div className="flex items-center justify-between mb-6">
@@ -52,12 +55,23 @@ export const JustifyAbsenceModal: React.FC<{
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={onClose}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl transition-colors text-gray-400"
-                >
-                  <X size={20} />
-                </button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={onClose}
+                        aria-label="Cerrar"
+                        className="h-10 w-10 rounded-xl text-gray-400"
+                      >
+                        <X size={20} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Cerrar</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
 
               <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 rounded-xl flex gap-3 mb-6">
@@ -74,7 +88,7 @@ export const JustifyAbsenceModal: React.FC<{
 
               <div className="space-y-4">
                 <div className="p-4 bg-gray-50 dark:bg-slate-800/50 rounded-xl border border-gray-100 dark:border-slate-700">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">
                     Estudiante
                   </p>
                   <p className="text-sm font-bold text-gray-800 dark:text-white">
@@ -101,18 +115,21 @@ export const JustifyAbsenceModal: React.FC<{
               </div>
 
               <div className="grid grid-cols-2 gap-3 mt-8">
-                <button
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={onClose}
-                  className="py-4 bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-200 dark:hover:bg-slate-700 transition-all"
+                  className="h-12 rounded-xl font-bold text-gray-600 dark:text-gray-300"
                 >
                   Cancelar
-                </button>
-                <button
+                </Button>
+                <Button
+                  type="button"
                   onClick={onConfirm}
-                  className="py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 dark:shadow-none flex items-center justify-center gap-2"
+                  className="h-12 rounded-xl font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-200 dark:shadow-none [&_svg]:size-[18px]"
                 >
                   <Check size={18} /> Confirmar
-                </button>
+                </Button>
               </div>
             </div>
           </motion.div>
