@@ -1,4 +1,4 @@
-import { DAY_NAMES, MONTH_NAMES } from '@/data/calendar';
+import { DAY_NAMES } from '@/data/calendar';
 import { INCIDENT_TYPES } from '@/data/education';
 import { pseudoRandom } from '@/lib/pseudoRandom';
 import type { IncidentType } from '@/types';
@@ -117,18 +117,6 @@ export const groupDaysByWeekOfMonth = (days: AttendanceGridDay[]): DayGroup[] =>
   days.forEach((day) => {
     const week = getWeekOfMonth(day.date);
     const label = `Semana ${week}`;
-    const current = groups[groups.length - 1];
-    if (current?.label === label) current.days.push(day);
-    else groups.push({ label, days: [day] });
-  });
-  return groups;
-};
-
-/** Agrupa los días de un rango que cruza meses (ej. un bimestre) por nombre de mes. */
-export const groupDaysByMonth = (days: AttendanceGridDay[]): DayGroup[] => {
-  const groups: DayGroup[] = [];
-  days.forEach((day) => {
-    const label = `${MONTH_NAMES[day.date.getMonth()]} ${day.date.getFullYear()}`;
     const current = groups[groups.length - 1];
     if (current?.label === label) current.days.push(day);
     else groups.push({ label, days: [day] });

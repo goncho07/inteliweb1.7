@@ -1,268 +1,318 @@
 import React from 'react';
-import { Calendar, ChevronLeft, ChevronRight, Download, Filter, SquarePen, User } from 'lucide-react';
+import { ChevronLeft, ChevronRight, SearchX, UserPlus, Users } from 'lucide-react';
 
+import { StudentAvatar } from '@/components/common/StudentAvatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { DropdownFilter } from '@/features/users/components/DropdownFilter';
-import { HierarchicalDropdownFilter } from '@/features/users/components/HierarchicalDropdownFilter';
-import { downloadUserQRCarnets } from '@/features/users/utils';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { UserRowActions } from '@/features/users/components/UserRowActions';
+import type { UsersFilters } from '@/features/users/hooks/useUsersFilters';
+import { PAGE_SIZE_OPTIONS, ROLE_META, STATUS_STYLES } from '@/features/users/users.constants';
 import { cn } from '@/lib/utils';
-import { UserItem } from '@/types';
+import type { UserItem } from '@/types';
 
-const STATUS_STYLES: Record<string, string> = {
-  Matriculado: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
-  Activo: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
-  Retirado: 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400',
-  Trasladado: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
-  Egresado: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+/**
+ * Tabla de usuarios. Es ella la que se desplaza —no la página— con la
+ * cabecera de columnas fija arriba y la paginación anclada abajo, para que
+ * ninguna de las dos se pierda al recorrer la lista.
+ *
+ * La fila entera abre la ficha: es el objetivo de clic más grande posible y
+ * no obliga a apuntar al nombre. Al ser pulsable lleva `tabIndex`, responde a
+ * Enter/Espacio y se remarca al pasar por encima, al enfocarla con el teclado
+ * y mientras su ficha está abierta.
+ */
+
+/** Etiqueta y contenido de la columna que cambia según el rol listado. */
+const roleColumn = (user: UserItem): { primary: string; secondary?: string } => {
+  switch (user.role) {
+    case 'Estudiante':
+      return {
+        primary: user.level ?? 'Sin aula',
+        secondary: user.grade ? `${user.grade} · Sección ${user.section ?? '—'}` : undefined,
+      };
+    case 'Docente': {
+      const total = user.classrooms?.length ?? 0;
+      return {
+        primary: user.subject ?? 'Sin curso asignado',
+        secondary:
+          total === 0
+            ? 'Sin aulas asignadas'
+            : `${total} ${total === 1 ? 'aula' : 'aulas'} a cargo`,
+      };
+    }
+    case 'Apoderado': {
+      const total = user.childrenIds?.length ?? 0;
+      return {
+        primary:
+          total === 0 ? 'Sin hijos vinculados' : `${total} ${total === 1 ? 'hijo' : 'hijos'}`,
+        secondary: user.phone ? `+51 ${user.phone}` : undefined,
+      };
+    }
+    case 'Administrativo':
+      return {
+        primary: user.position ?? 'Sin cargo',
+        secondary: user.phone ? `+51 ${user.phone}` : undefined,
+      };
+  }
 };
 
-/** Acción de fila: icono con etiqueta accesible y tooltip, según el contrato de diseño. */
-const RowAction: React.FC<{
-  label: string;
-  icon: React.ElementType;
-  tone: 'emerald' | 'blue';
-  onClick: (e: React.MouseEvent) => void;
-}> = ({ label, icon: Icon, tone, onClick }) => (
-  <Tooltip>
-    <TooltipTrigger asChild>
+const ROLE_COLUMN_LABEL: Record<UserItem['role'], string> = {
+  Estudiante: 'Aula',
+  Docente: 'Curso y aulas',
+  Apoderado: 'Familia',
+  Administrativo: 'Cargo',
+};
+
+const EmptyState: React.FC<{
+  hasFilters: boolean;
+  onClearFilters: () => void;
+  onCreate: () => void;
+  role: UserItem['role'];
+}> = ({ hasFilters, onClearFilters, onCreate, role }) => (
+  <div className="flex flex-col items-center justify-center gap-3 p-8 text-center">
+    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800">
+      {hasFilters ? <SearchX size={28} /> : <Users size={28} />}
+    </div>
+    <p className="text-base font-bold text-slate-700 dark:text-slate-200">
+      {hasFilters
+        ? 'Ningún usuario coincide con los filtros'
+        : `Todavía no hay ${ROLE_META[role].plural.toLowerCase()} registrados`}
+    </p>
+    <p className="max-w-md text-base text-slate-500 dark:text-slate-400">
+      {hasFilters
+        ? 'Prueba a quitar algún filtro de la barra lateral o a buscar por otro nombre o DNI.'
+        : 'Registra el primero a mano o sube el padrón completo desde un archivo CSV.'}
+    </p>
+    {hasFilters ? (
       <Button
         type="button"
-        variant="ghost"
-        size="icon"
-        aria-label={label}
-        onClick={onClick}
-        className={cn(
-          'h-10 w-10 rounded-lg',
-          tone === 'emerald'
-            ? 'text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-900/20'
-            : 'text-blue-600 hover:bg-blue-50 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-blue-900/20',
-        )}
+        variant="outline"
+        onClick={onClearFilters}
+        className="mt-2 h-11 rounded-xl px-6 text-base font-semibold"
       >
-        <Icon size={20} />
+        Limpiar filtros
       </Button>
-    </TooltipTrigger>
-    <TooltipContent>{label}</TooltipContent>
-  </Tooltip>
+    ) : (
+      <Button
+        type="button"
+        onClick={onCreate}
+        className="mt-2 h-11 gap-2 rounded-xl px-6 text-base font-semibold"
+      >
+        <UserPlus size={20} /> Crear usuario
+      </Button>
+    )}
+  </div>
 );
 
-/** Tabla de usuarios con filtros de aula/estado en cabecera, acciones por fila y paginación. */
 export const UsersTable: React.FC<{
-  paginatedUsers: UserItem[];
-  selectedRole: UserItem['role'];
-  selectedLevel: string;
-  changeLevel: (value: string) => void;
-  selectedGrade: string;
-  changeGrade: (value: string) => void;
-  selectedSection: string;
-  changeSection: (value: string) => void;
-  gradeOptions: string[];
-  sectionOptions: string[];
-  selectedStatus: string;
-  changeStatus: (value: string) => void;
-  openDropdown: string | null;
-  setOpenDropdown: (value: string | null) => void;
-  setSelectedUser: (user: UserItem) => void;
-  setInitialModalTab: (tab: 'personal' | 'academic' | 'family' | 'account') => void;
-  setSelectedTeacherForSchedule: (user: UserItem) => void;
-  setIsScheduleModalOpen: (value: boolean) => void;
-  currentPage: number;
-  setCurrentPage: React.Dispatch<React.SetStateAction<number>>;
-  totalPages: number;
+  filters: UsersFilters;
+  /** Usuario cuya ficha está abierta: su fila se queda remarcada. */
+  activeUserId: string | null;
+  onView: (user: UserItem) => void;
+  onEdit: (user: UserItem) => void;
+  onDelete: (user: UserItem) => void;
+  onDownloadCarnet: (user: UserItem) => void;
+  onViewSchedule: (user: UserItem) => void;
+  onCreate: () => void;
 }> = ({
-  paginatedUsers,
-  selectedRole,
-  selectedLevel,
-  changeLevel,
-  selectedGrade,
-  changeGrade,
-  selectedSection,
-  changeSection,
-  gradeOptions,
-  sectionOptions,
-  selectedStatus,
-  changeStatus,
-  openDropdown,
-  setOpenDropdown,
-  setSelectedUser,
-  setInitialModalTab,
-  setSelectedTeacherForSchedule,
-  setIsScheduleModalOpen,
-  currentPage,
-  setCurrentPage,
-  totalPages,
-}) => (
-  <TooltipProvider delayDuration={200}>
-    <div className="flex w-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <div className="flex-1 overflow-x-auto">
-        <Table className="min-w-[800px] table-fixed border-collapse text-left">
-          <TableHeader>
-            <TableRow className="border-b border-blue-100 bg-blue-50/40 hover:bg-blue-50/40 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-800">
-              <TableHead className="w-[40%] px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+  filters,
+  activeUserId,
+  onView,
+  onEdit,
+  onDelete,
+  onDownloadCarnet,
+  onViewSchedule,
+  onCreate,
+}) => {
+  const { pageUsers, page, pageSize, totalPages, filteredUsers } = filters;
+  const firstRow = filteredUsers.length === 0 ? 0 : (page - 1) * pageSize + 1;
+  const lastRow = Math.min(page * pageSize, filteredUsers.length);
+
+  return (
+    <div className="flex min-h-0 w-full flex-1 flex-col bg-white dark:bg-slate-900">
+      {/* Único contenedor con scroll de la pantalla: la barra de filtros de
+          arriba y la paginación de abajo quedan siempre a la vista. */}
+      <div className="custom-scrollbar min-h-0 w-full flex-1 overflow-auto">
+        {/* `<table>` crudo a propósito: el `Table` de shadcn se envuelve en un
+            `overflow-auto` propio que atraparía el `sticky` de la cabecera. */}
+        <table className="w-full min-w-[900px] caption-bottom text-sm">
+          <TableHeader className="sticky top-0 z-10">
+            <TableRow className="border-b border-slate-200 bg-slate-50 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-800 dark:hover:bg-slate-800">
+              <TableHead className="min-w-[280px] px-4 text-sm font-bold text-slate-600 dark:text-slate-300">
                 Usuario
               </TableHead>
-              <TableHead className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                <HierarchicalDropdownFilter
-                  selectedLevel={selectedLevel}
-                  setSelectedLevel={changeLevel}
-                  selectedGrade={selectedGrade}
-                  setSelectedGrade={changeGrade}
-                  selectedSection={selectedSection}
-                  setSelectedSection={changeSection}
-                  gradeOptions={gradeOptions}
-                  sectionOptions={sectionOptions}
-                  isOpen={openDropdown === 'hierarchy'}
-                  onToggle={() => setOpenDropdown(openDropdown === 'hierarchy' ? null : 'hierarchy')}
-                />
+              <TableHead className="w-[140px] px-4 text-sm font-bold text-slate-600 dark:text-slate-300">
+                DNI
               </TableHead>
-              <TableHead className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                <DropdownFilter
-                  label="Estado"
-                  value={selectedStatus}
-                  options={
-                    selectedRole === 'Estudiante'
-                      ? ['Matriculado', 'Retirado', 'Trasladado', 'Egresado']
-                      : ['Activo', 'Inactivo', 'Suspendido']
-                  }
-                  isOpen={openDropdown === 'status'}
-                  onToggle={() => setOpenDropdown(openDropdown === 'status' ? null : 'status')}
-                  onChange={changeStatus}
-                />
+              <TableHead className="min-w-[200px] px-4 text-sm font-bold text-slate-600 dark:text-slate-300">
+                {ROLE_COLUMN_LABEL[filters.role]}
               </TableHead>
-              <TableHead className="w-[15%] px-6 py-4 text-right text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+              <TableHead className="w-[150px] px-4 text-sm font-bold text-slate-600 dark:text-slate-300">
+                Estado
+              </TableHead>
+              <TableHead className="w-[100px] px-4 text-right text-sm font-bold text-slate-600 dark:text-slate-300">
                 Acciones
               </TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {paginatedUsers.length > 0 ? (
-              paginatedUsers.map((user, index) => (
-                <TableRow
-                  key={user.id}
-                  onClick={() => setSelectedUser(user)}
-                  className={cn(
-                    'cursor-pointer border-b-0 transition-colors hover:bg-blue-50/50 dark:hover:bg-slate-700',
-                    index % 2 === 0 ? 'bg-white dark:bg-slate-900' : 'bg-slate-50 dark:bg-slate-800/80',
-                  )}
-                >
-                  <TableCell className="px-6 py-4">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-100 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-800">
-                        <User size={20} />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-base font-bold uppercase tracking-tight text-slate-900 dark:text-white">
-                          {user.name}
-                        </p>
-                        {user.code && (
-                          <p className="mt-0.5 text-xs font-medium text-slate-400">{user.code}</p>
-                        )}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-6 py-4">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-bold uppercase text-slate-700 dark:text-slate-300">
-                        {user.level || '—'}
-                      </span>
-                      <span className="mt-1 text-sm font-bold text-slate-500 dark:text-slate-400">
-                        {user.grade ? `${user.grade.replace(' Grado', '')} ${user.section ?? ''}` : '—'}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-6 py-4">
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        'border-transparent',
-                        STATUS_STYLES[user.status ?? ''] ??
-                          'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400',
-                      )}
-                    >
-                      {user.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      {selectedRole === 'Estudiante' && (
-                        <RowAction
-                          label="Descargar carnet QR"
-                          icon={Download}
-                          tone="emerald"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            downloadUserQRCarnets(user);
-                          }}
-                        />
-                      )}
-                      {selectedRole === 'Docente' && (
-                        <RowAction
-                          label="Ver horario"
-                          icon={Calendar}
-                          tone="emerald"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedTeacherForSchedule(user);
-                            setIsScheduleModalOpen(true);
-                          }}
-                        />
-                      )}
-                      <RowAction
-                        label={selectedRole === 'Estudiante' ? 'Editar familia' : 'Editar cuenta'}
-                        icon={SquarePen}
-                        tone="blue"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setInitialModalTab(selectedRole === 'Estudiante' ? 'family' : 'account');
-                          setSelectedUser(user);
-                        }}
-                      />
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
+          <TableBody>
+            {pageUsers.length === 0 ? (
               <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={4} className="px-6 py-12 text-center">
-                  <Filter size={32} className="mx-auto mb-3 text-slate-300 dark:text-slate-700" />
-                  <p className="text-base font-bold text-slate-600 dark:text-slate-300">
-                    No hay resultados con estos filtros
-                  </p>
-                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                    Prueba a cambiar el aula, el estado o el texto de búsqueda.
-                  </p>
+                <TableCell colSpan={5} className="p-0">
+                  <EmptyState
+                    role={filters.role}
+                    hasFilters={filters.activeFiltersCount > 0}
+                    onClearFilters={filters.clearFilters}
+                    onCreate={onCreate}
+                  />
                 </TableCell>
               </TableRow>
+            ) : (
+              pageUsers.map((user, index) => {
+                const isActive = user.id === activeUserId;
+                const column = roleColumn(user);
+                return (
+                  <TableRow
+                    key={user.id}
+                    tabIndex={0}
+                    aria-label={`Ver la ficha de ${user.name}`}
+                    onClick={() => onView(user)}
+                    onKeyDown={(event) => {
+                      if (event.key !== 'Enter' && event.key !== ' ') return;
+                      event.preventDefault();
+                      onView(user);
+                    }}
+                    className={cn(
+                      'cursor-pointer border-b border-slate-100 transition-colors dark:border-slate-800',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+                      // Cebra: la primera fila en blanco, la siguiente en gris
+                      // claro, para no perder el renglón al recorrer la tabla.
+                      index % 2 === 1 && 'bg-slate-50 dark:bg-slate-800/40',
+                      isActive
+                        ? 'bg-primary/10 hover:bg-primary/10 dark:bg-primary/20'
+                        : 'hover:bg-primary/5 dark:hover:bg-primary/10',
+                    )}
+                  >
+                    <TableCell className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <StudentAvatar className="h-10 w-10" />
+                        <div className="min-w-0">
+                          <p className="truncate text-base font-bold text-slate-900 dark:text-white">
+                            {user.name}
+                          </p>
+                          <p className="truncate text-sm text-slate-500 dark:text-slate-400">
+                            {user.code ?? user.email}
+                          </p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-base tabular-nums text-slate-700 dark:text-slate-300">
+                      {user.dni}
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
+                      <p className="truncate text-base font-medium text-slate-800 dark:text-slate-200">
+                        {column.primary}
+                      </p>
+                      {column.secondary && (
+                        <p className="truncate text-sm text-slate-500 dark:text-slate-400">
+                          {column.secondary}
+                        </p>
+                      )}
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
+                      <Badge
+                        variant="outline"
+                        className={cn('px-3 py-1 text-sm', STATUS_STYLES[user.status])}
+                      >
+                        {user.status}
+                      </Badge>
+                    </TableCell>
+                    {/* El menú de acciones no es "abrir la ficha": su clic no
+                        debe subir hasta la fila. */}
+                    <TableCell
+                      className="px-4 py-3 text-right"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <UserRowActions
+                        user={user}
+                        onView={onView}
+                        onEdit={onEdit}
+                        onDelete={onDelete}
+                        onDownloadCarnet={onDownloadCarnet}
+                        onViewSchedule={onViewSchedule}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
-        </Table>
+        </table>
       </div>
 
-      <div className="flex items-center justify-between gap-4 border-t border-slate-100 bg-slate-50/50 px-6 py-4 dark:border-slate-800 dark:bg-slate-800/50">
-        <Button
-          type="button"
-          variant="outline"
-          disabled={currentPage === 1}
-          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-          className="h-10 gap-2 rounded-xl px-4 font-bold"
-        >
-          <ChevronLeft size={20} /> Anterior
-        </Button>
-        <span className="text-sm font-bold text-slate-500 dark:text-slate-400">
-          Página {currentPage} de {totalPages || 1}
-        </span>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={currentPage === totalPages || totalPages === 0}
-          onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-          className="h-10 gap-2 rounded-xl px-4 font-bold"
-        >
-          Siguiente <ChevronRight size={20} />
-        </Button>
+      {/* Anclada abajo, fuera del scroll: siempre se ve en qué página se está. */}
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-4 border-t border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-800/40">
+        <div className="flex items-center gap-3">
+          <label
+            htmlFor="filas-por-pagina"
+            className="text-sm font-medium text-slate-600 dark:text-slate-400"
+          >
+            Filas por página
+          </label>
+          <Select
+            value={pageSize.toString()}
+            onValueChange={(value) => filters.setPageSize(Number(value))}
+          >
+            <SelectTrigger id="filas-por-pagina" className="h-10 w-24 rounded-xl text-base">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl">
+              {PAGE_SIZE_OPTIONS.map((size) => (
+                <SelectItem key={size} value={size.toString()} className="h-10 text-base">
+                  {size}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <p className="text-base text-slate-600 dark:text-slate-400">
+          {filteredUsers.length === 0
+            ? 'Sin resultados'
+            : `Mostrando ${firstRow}–${lastRow} de ${filteredUsers.length}`}
+        </p>
+
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={page === 1}
+            onClick={() => filters.setPage(page - 1)}
+            className="h-10 gap-2 rounded-xl px-4 text-base font-semibold"
+          >
+            <ChevronLeft size={20} /> Anterior
+          </Button>
+          <span className="min-w-[110px] text-center text-base font-semibold text-slate-700 dark:text-slate-300">
+            Página {page} de {totalPages}
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={page >= totalPages}
+            onClick={() => filters.setPage(page + 1)}
+            className="h-10 gap-2 rounded-xl px-4 text-base font-semibold"
+          >
+            Siguiente <ChevronRight size={20} />
+          </Button>
+        </div>
       </div>
     </div>
-  </TooltipProvider>
-);
+  );
+};

@@ -72,6 +72,44 @@ export const ModuleSidebar: React.FC<{
   </section>
 );
 
+/**
+ * Zona con scroll de la barra lateral. Fija el único relleno exterior de la
+ * columna (`p-3`) y la separación entre bloques (`space-y-6`) — un módulo no
+ * pone su propio padding ni anida otra tarjeta blanca aquí dentro.
+ */
+export const ModuleSidebarBody: React.FC<{ children: React.ReactNode; className?: string }> = ({
+  children,
+  className,
+}) => (
+  <div className={cn('hidden-scrollbar flex-1 space-y-6 overflow-y-auto p-3', className)}>{children}</div>
+);
+
+/**
+ * Bloque de la barra lateral: etiqueta en mayúsculas + lista de tarjetas.
+ * Es la única forma de titular una sección del sidebar, para que Inicio,
+ * Aulas, Usuarios y Calendario compartan etiqueta, márgenes y separación
+ * entre ítems en lugar de que cada módulo invente los suyos.
+ */
+export const ModuleSidebarSection: React.FC<{
+  label: string;
+  /** Línea de contexto bajo la etiqueta (ej. "5 grados • 33 secciones"). */
+  hint?: string;
+  /** Control a la derecha de la etiqueta (ej. "Ver todo"). */
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}> = ({ label, hint, action, children }) => (
+  <div>
+    <div className="flex min-h-10 items-center justify-between gap-2 px-2">
+      <h3 className="truncate text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        {label}
+      </h3>
+      {action}
+    </div>
+    {hint && <p className="px-2 pb-2 text-sm text-slate-500 dark:text-slate-400">{hint}</p>}
+    <div className="flex flex-col gap-2 pt-1">{children}</div>
+  </div>
+);
+
 export const ModulePane: React.FC<{ children: React.ReactNode; className?: string }> = ({
   children,
   className,
@@ -99,7 +137,11 @@ export const ModulePaneHeader: React.FC<{ children: React.ReactNode; className?:
 }) => (
   <div
     className={cn(
-      'flex min-h-16 shrink-0 flex-wrap items-center justify-between gap-4 border-b border-slate-100 bg-white px-6 py-4 dark:border-slate-800/60 dark:bg-slate-900',
+      // Misma altura exacta que la cabecera del sidebar (`h-16`): las dos
+      // columnas arrancan a la misma línea, ninguna más alta que la otra. Sin
+      // `flex-wrap` ni `py-*` propios — si el contenido no cabe, se recorta o
+      // se reduce, nunca se apila haciendo crecer la barra.
+      'flex h-16 shrink-0 items-center justify-between gap-4 border-b border-slate-100 bg-white px-6 dark:border-slate-800/60 dark:bg-slate-900',
       className,
     )}
   >
@@ -107,18 +149,33 @@ export const ModulePaneHeader: React.FC<{ children: React.ReactNode; className?:
   </div>
 );
 
-/** Zona con scroll bajo la cabecera del módulo. `centered` limita el ancho para el panel principal. */
+/**
+ * Zona con scroll bajo la cabecera del módulo. `centered` limita el ancho para
+ * el panel principal.
+ *
+ * `flush` quita el relleno exterior: el contenido llega a los bordes del panel
+ * y ocupa todo el ancho disponible. Se reserva a los módulos cuya pantalla
+ * *es* una tabla (Usuarios, Vista General del Aula), donde esos 32px de margen
+ * se comen columnas de datos. En ese modo el contenido tampoco se separa con
+ * `space-y-6`: los bloques se apilan pegados y se distinguen por su borde.
+ */
 export const ModuleBody: React.FC<{
   children: React.ReactNode;
   centered?: boolean;
+  flush?: boolean;
   className?: string;
-}> = ({ children, centered = false, className }) => (
+}> = ({ children, centered = false, flush = false, className }) => (
   <div
     className={cn(
-      'custom-scrollbar relative z-0 flex-1 overflow-y-auto p-4 sm:p-6 lg:px-8 lg:pb-8 lg:pt-6',
+      'custom-scrollbar relative z-0 flex-1 overflow-y-auto',
+      !flush && 'p-4 sm:p-6 lg:px-8 lg:pb-8 lg:pt-6',
       className,
     )}
   >
-    {centered ? <div className="mx-auto w-full max-w-[1700px] space-y-6">{children}</div> : children}
+    {centered ? (
+      <div className={cn('mx-auto w-full max-w-[1700px]', !flush && 'space-y-6')}>{children}</div>
+    ) : (
+      children
+    )}
   </div>
 );

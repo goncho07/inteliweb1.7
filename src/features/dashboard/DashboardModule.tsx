@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { CalendarX2, Moon, School, Sun, Sunset, UserRound, UserX } from 'lucide-react';
-import { ModuleBody, ModulePane, ModuleShell } from '@/components/layout/ModuleShell';
+import { ModuleBody, ModulePane, ModulePaneHeader, ModuleShell } from '@/components/layout/ModuleShell';
 import { useSession } from '@/features/auth/SessionContext';
 import { ModuleProps } from '@/types';
 
@@ -62,6 +62,7 @@ export const DashboardModule: React.FC<ModuleProps> = ({ globalDate }) => {
   const [selectedLevel, setSelectedLevel] = useState<LevelFilter>('Todos');
   const today = globalDate ?? new Date();
   const { label: greetingLabel, Icon: GreetingIcon } = getGreeting();
+  const firstName = session.user.name.split(' ')[0];
 
   const bimestreData = BIMESTRE_DASHBOARD_DATA[selectedBimestreId];
   const selectedBimestre = BIMESTRES.find((bimestre) => bimestre.id === selectedBimestreId) ?? BIMESTRES[0];
@@ -76,13 +77,6 @@ export const DashboardModule: React.FC<ModuleProps> = ({ globalDate }) => {
     () => (session.classrooms ? buildScopedStudentPool(session.classrooms) : undefined),
     [session.classrooms],
   );
-  const scopeLabel =
-    session.classrooms === null
-      ? 'Todo el colegio'
-      : session.classrooms.length === 1
-        ? 'Mi aula'
-        : `Mis ${session.classrooms.length} aulas`;
-
   const classroomAbsenceRanking = useMemo(
     () => getClassroomAbsenceRanking(selectedBimestreId, classroomPool),
     [selectedBimestreId, classroomPool],
@@ -111,22 +105,23 @@ export const DashboardModule: React.FC<ModuleProps> = ({ globalDate }) => {
 
       {/* Área principal: resumen ejecutivo del colegio */}
       <ModulePane>
-        <ModuleBody centered>
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400">
-                <GreetingIcon size={20} strokeWidth={2} />
-              </div>
-              <div className="min-w-0">
-                <h1 className="truncate text-xl font-bold text-slate-800 dark:text-white">{greetingLabel}</h1>
-                <p className="truncate text-sm font-medium text-slate-500 dark:text-slate-400">{formatLongDate(today)}</p>
-              </div>
+        {/* Mismo alto (`h-16`) e idéntica anatomía que la cabecera del sidebar:
+            las dos columnas arrancan en la misma línea. */}
+        <ModulePaneHeader>
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400">
+              <GreetingIcon size={24} strokeWidth={2} />
             </div>
-            <span className="shrink-0 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
-              {scopeLabel}
-            </span>
+            <div className="min-w-0">
+              <p className="truncate text-lg font-bold text-slate-800 dark:text-white">
+                {greetingLabel}, {firstName}
+              </p>
+              <p className="truncate text-base text-slate-500 dark:text-slate-400">{formatLongDate(today)}</p>
+            </div>
           </div>
+        </ModulePaneHeader>
 
+        <ModuleBody centered>
           <section>
             <h2 className="mb-3 px-1 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
               Asistencia

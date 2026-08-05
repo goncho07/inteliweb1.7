@@ -1,97 +1,114 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, BookOpen, HelpCircle } from 'lucide-react';
+import { BookOpen, HelpCircle, Phone, PlayCircle } from 'lucide-react';
+
+import {
+  DialogShellBody,
+  DialogShellContent,
+  DialogShellFooter,
+  DialogShellHeader,
+} from '@/components/common/DialogShell';
 import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { modalVariants } from '@/lib/motion';
+import { Dialog } from '@/components/ui/dialog';
 
-export const HelpCenterModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
-  if (!isOpen) return null;
-  return (
-    <AnimatePresence>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] flex justify-center items-center p-4" onClick={onClose}>
-        <motion.div variants={modalVariants} initial="hidden" animate="visible" exit="exit" className="w-full max-w-4xl max-h-[90vh] bg-white dark:bg-slate-950 rounded-xl shadow-lg overflow-y-auto border border-gray-100 dark:border-slate-800" onClick={(e) => e.stopPropagation()}>
-          <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-slate-800 sticky top-0 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md z-10">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-              <span className="p-2 bg-blue-50 text-blue-600 rounded-xl dark:bg-blue-900/30 dark:text-blue-400">
-                <HelpCircle size={24} />
+/** Teléfonos de soporte del colegio. */
+const SUPPORT_PHONES = ['+51 960 960 752', '+51 934 973 356'];
+
+/**
+ * Ayuda y soporte. Antes era un `fixed inset-0` propio con su propio radio y
+ * tipografías de hasta `text-3xl`; ahora es la misma ventana que el resto de la
+ * app, con cabecera, cuerpo con scroll propio y pie.
+ */
+export const HelpCenterModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
+  isOpen,
+  onClose,
+}) => (
+  <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <DialogShellContent size="md">
+      <DialogShellHeader
+        icon={HelpCircle}
+        title="Ayuda y soporte"
+        description="Contacto directo con el equipo y material de consulta."
+      />
+
+      <DialogShellBody>
+        <section className="flex flex-col items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center dark:border-slate-800 dark:bg-slate-800/40">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Phone size={20} />
+          </span>
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+            Soporte y emergencias
+          </h3>
+          <p className="text-base text-slate-600 dark:text-slate-400">
+            Para cualquier duda o problema con la plataforma, comuníquese al:
+          </p>
+          <div className="flex flex-col gap-2">
+            {SUPPORT_PHONES.map((phone) => (
+              <a
+                key={phone}
+                href={`tel:${phone.replace(/\s/g, '')}`}
+                className="rounded-xl px-3 py-2 text-2xl font-bold text-primary hover:underline"
+              >
+                {phone}
+              </a>
+            ))}
+          </div>
+          <p className="text-base text-slate-600 dark:text-slate-400">
+            <span className="font-semibold text-slate-800 dark:text-slate-200">
+              Horario de atención:
+            </span>{' '}
+            lunes a viernes, de 7:00 a. m. a 4:00 p. m.
+          </p>
+        </section>
+
+        <section className="flex flex-col gap-3">
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">
+            Manuales y videos tutoriales
+          </h3>
+          <a
+            href="#"
+            className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <BookOpen size={20} />
+            </span>
+            <span>
+              <span className="block text-base font-bold text-slate-900 dark:text-white">
+                Manual del docente (PDF)
               </span>
-              Ayuda y Soporte
-            </h2>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={onClose}
-                    aria-label="Cerrar ayuda y soporte"
-                    className="h-10 w-10 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 [&_svg]:size-6"
-                  >
-                    <X size={24}/>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Cerrar</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-          
-          <div className="p-8 space-y-12">
-            
-            {/* Soporte y Emergencias */}
-            <div className="text-center bg-gray-50 dark:bg-slate-900/50 rounded-xl p-8 border border-gray-100 dark:border-slate-800 relative overflow-hidden">
-              <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-400 via-emerald-400 to-blue-400" />
-              <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-6">Soporte y Emergencias:</h3>
-              <p className="text-xl font-bold text-gray-700 dark:text-gray-300 mb-6">
-                Para cualquier duda o problema con el módulo o App, comunicarse al:
-              </p>
-              <div className="flex flex-col items-center gap-2 mb-8">
-                <a href="tel:+51960960752" className="text-3xl font-black text-blue-600 dark:text-blue-400 hover:underline hover:text-blue-700 transition-colors">
-                  +51 960 960 752
-                </a>
-                <a href="tel:+51934973356" className="text-3xl font-black text-blue-600 dark:text-blue-400 hover:underline hover:text-blue-700 transition-colors">
-                  +51 934 973 356
-                </a>
-              </div>
-              <div>
-                <p className="text-xl font-black text-gray-900 dark:text-white mb-2">Horario de Atención:</p>
-                <p className="text-xl font-bold text-gray-700 dark:text-gray-300">
-                  Lunes a Viernes: 7:00 am - 16:00 pm
-                </p>
-              </div>
-            </div>
+              <span className="block text-base text-slate-500 dark:text-slate-400">
+                Toda la información necesaria, paso a paso.
+              </span>
+            </span>
+          </a>
+          <a
+            href="#"
+            className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800"
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <PlayCircle size={20} />
+            </span>
+            <span>
+              <span className="block text-base font-bold text-slate-900 dark:text-white">
+                Video tutorial: crear una citación
+              </span>
+              <span className="block text-base text-slate-500 dark:text-slate-400">
+                Cómo enviar un aviso al apoderado, de principio a fin.
+              </span>
+            </span>
+          </a>
+        </section>
+      </DialogShellBody>
 
-            {/* Manuales y Tutoriales */}
-            <div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6 border-b border-gray-100 dark:border-slate-800 pb-2">
-                Manuales y Videos Tutoriales
-              </h3>
-              <div className="flex flex-col gap-4">
-                <a href="#" className="flex items-center gap-4 bg-gray-50 hover:bg-gray-100 dark:bg-slate-800/50 dark:hover:bg-slate-800 p-4 rounded-xl transition-colors border border-gray-100 dark:border-slate-700">
-                  <div className="w-12 h-12 bg-rose-100 text-rose-600 rounded-lg flex items-center justify-center shrink-0">
-                    <BookOpen size={24} />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-gray-900 dark:text-white">Manual del Docente (PDF)</h4>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Toda la información necesaria paso a paso.</p>
-                  </div>
-                </a>
-                <a href="#" className="flex items-center gap-4 bg-gray-50 hover:bg-gray-100 dark:bg-slate-800/50 dark:hover:bg-slate-800 p-4 rounded-xl transition-colors border border-gray-100 dark:border-slate-700">
-                  <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center shrink-0">
-                    <BookOpen size={24} />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-gray-900 dark:text-white">Video Tutorial: Creación de Citaciones</h4>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Mira cómo mandar un aviso a los padres de familia.</p>
-                  </div>
-                </a>
-              </div>
-            </div>
-
-          </div>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
-  );
-};
+      <DialogShellFooter className="justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onClose}
+          className="h-12 rounded-xl px-6 text-base font-semibold"
+        >
+          Cerrar
+        </Button>
+      </DialogShellFooter>
+    </DialogShellContent>
+  </Dialog>
+);

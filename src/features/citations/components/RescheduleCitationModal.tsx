@@ -2,8 +2,14 @@ import React from 'react';
 import { CalendarDays, Clock } from 'lucide-react';
 
 import { CustomCalendar } from '@/components/calendar/CustomCalendar';
+import {
+  DialogShellBody,
+  DialogShellContent,
+  DialogShellFooter,
+  DialogShellHeader,
+} from '@/components/common/DialogShell';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -36,21 +42,19 @@ export const RescheduleCitationModal: React.FC<{
 }) => {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="rounded-2xl p-0 gap-0 max-w-[440px] overflow-hidden">
-        <DialogHeader className="p-6 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 space-y-0">
-          <DialogTitle className="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
-            <CalendarDays className="w-5 h-5 text-primary" /> Reprogramar citación
-          </DialogTitle>
-          {citation && (
-            <p className="text-sm text-slate-500 dark:text-slate-400 pt-1">
-              {citation.student} · {citation.reason}
-            </p>
-          )}
-        </DialogHeader>
+      <DialogShellContent size="sm">
+        <DialogShellHeader
+          icon={CalendarDays}
+          title="Reprogramar citación"
+          description={citation ? `${citation.student} · ${citation.reason}` : undefined}
+        />
 
-        <div className="p-6 flex flex-col gap-4">
-          <div>
-            <Label htmlFor="reschedule-date" className="mb-1.5 block text-sm font-bold text-slate-700 dark:text-slate-300">
+        <DialogShellBody>
+          <div className="flex flex-col gap-2">
+            <Label
+              htmlFor="reschedule-date"
+              className="text-sm font-semibold text-slate-700 dark:text-slate-300"
+            >
               Nueva fecha
             </Label>
             <CustomCalendar
@@ -60,41 +64,59 @@ export const RescheduleCitationModal: React.FC<{
               placeholder="Seleccionar fecha"
             />
           </div>
-          <div>
-            <Label htmlFor="reschedule-time" className="mb-1.5 flex items-center gap-1.5 text-sm font-bold text-slate-700 dark:text-slate-300">
-              <Clock className="w-4 h-4 text-primary" /> Nueva hora
+
+          <div className="flex flex-col gap-2">
+            <Label
+              htmlFor="reschedule-time"
+              className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-300"
+            >
+              <Clock size={16} className="text-primary" /> Nueva hora
             </Label>
             <Input
               id="reschedule-time"
               type="time"
               value={reschedTime}
               onChange={(e) => onRescheduleTimeChange(e.target.value)}
-              className="h-10 rounded-xl"
+              className="h-11 rounded-xl text-base"
             />
           </div>
-          <div>
-            <Label htmlFor="reschedule-reason" className="mb-1.5 block text-sm font-bold text-slate-700 dark:text-slate-300">
+
+          <div className="flex flex-col gap-2">
+            <Label
+              htmlFor="reschedule-reason"
+              className="text-sm font-semibold text-slate-700 dark:text-slate-300"
+            >
               Motivo de reprogramación (opcional)
             </Label>
             <Textarea
               id="reschedule-reason"
               value={reschedReason}
               onChange={(e) => onRescheduleReasonChange(e.target.value)}
-              placeholder="Ej: Cruce de horarios con el padre de familia..."
-              className="rounded-xl h-20 resize-none"
+              placeholder="Ej: Cruce de horarios con el padre de familia…"
+              className="h-20 resize-none rounded-xl text-base"
             />
           </div>
-        </div>
+        </DialogShellBody>
 
-        <DialogFooter className="p-6 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-          <Button variant="ghost" onClick={onClose}>
+        <DialogShellFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            className="h-12 rounded-xl px-6 text-base font-semibold"
+          >
             Cancelar
           </Button>
-          <Button onClick={onConfirm} disabled={!reschedDate || !reschedTime}>
+          <Button
+            type="button"
+            onClick={onConfirm}
+            disabled={!reschedDate || !reschedTime}
+            className="h-12 rounded-xl px-6 text-base font-semibold"
+          >
             Guardar cambios
           </Button>
-        </DialogFooter>
-      </DialogContent>
+        </DialogShellFooter>
+      </DialogShellContent>
     </Dialog>
   );
 };

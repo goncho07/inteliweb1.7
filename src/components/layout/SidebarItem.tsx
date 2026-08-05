@@ -34,15 +34,15 @@ export const SidebarItem: React.FC<SidebarItemProps> = ({
         'group relative flex w-full cursor-pointer overflow-hidden rounded-2xl border transition-all',
         expanded ? 'flex-row items-center justify-start gap-3 px-4 py-2.5' : 'flex-col items-center justify-center gap-1 px-1 py-2.5',
         active
-          ? 'border-blue-200/50 bg-blue-50/80 text-blue-700 shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:text-blue-400'
-          : 'border-transparent text-slate-500 hover:border-gray-200 hover:bg-gray-50/80 hover:text-blue-600 dark:text-slate-400 dark:hover:border-slate-700 dark:hover:bg-slate-800/80 dark:hover:text-blue-300',
+          ? 'border-primary/20 bg-primary/10 text-primary shadow-sm dark:border-slate-700 dark:bg-slate-800'
+          : 'border-transparent text-slate-500 hover:border-gray-200 hover:bg-gray-50/80 hover:text-primary dark:text-slate-400 dark:hover:border-slate-700 dark:hover:bg-slate-800/80',
       )
     }
   >
     {expanded && active && !className && (
       <motion.div
         layout
-        className="absolute left-0 top-1/2 h-8 w-1.5 -translate-y-1/2 rounded-r-full bg-blue-600 dark:bg-blue-400"
+        className="absolute left-0 top-1/2 h-8 w-1.5 -translate-y-1/2 rounded-r-full bg-primary"
       />
     )}
 

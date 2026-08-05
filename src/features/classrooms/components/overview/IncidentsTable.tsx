@@ -18,7 +18,7 @@ const CATEGORY_BADGE_CLASSES: Record<IncidentType['category'], string> = {
 
 /** Tabla Fecha/Estudiante/Tipo/Descripción del reporte de incidencias del aula y periodo seleccionados. */
 export const IncidentsTable: React.FC<{ rows: IncidentReportRow[] }> = ({ rows }) => (
-  <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+  <div className="overflow-x-auto border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
     <table className="w-full min-w-[720px] border-collapse text-left text-sm">
       <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-800/50 dark:text-slate-400">
         <tr>

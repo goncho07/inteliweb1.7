@@ -27,10 +27,10 @@ export const OverviewTabsBar: React.FC<{
           <TabsTrigger
             key={tab.value}
             value={tab.value}
-            className="group relative h-10 rounded-none px-3 text-sm font-semibold text-slate-600 shadow-none data-[state=active]:bg-transparent data-[state=active]:text-blue-700 data-[state=active]:shadow-none dark:text-slate-400 dark:data-[state=active]:text-blue-400"
+            className="group relative h-10 rounded-none px-3 text-sm font-semibold text-slate-600 shadow-none data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none dark:text-slate-400"
           >
             {tab.label}
-            <span className="absolute bottom-0 left-0 right-0 hidden h-0.5 rounded-full bg-blue-600 group-data-[state=active]:block dark:bg-blue-400" />
+            <span className="absolute bottom-0 left-0 right-0 hidden h-0.5 rounded-full bg-primary group-data-[state=active]:block" />
           </TabsTrigger>
         ))}
       </TabsList>

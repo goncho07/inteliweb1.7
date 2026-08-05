@@ -1,281 +1,269 @@
-import React, { useMemo, useState } from 'react';
-import { AnimatePresence } from 'framer-motion';
-import { IdCard, Plus, Search, Users, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, Upload, Users } from 'lucide-react';
 
-import { ModuleBody, ModulePane, ModulePaneHeader, ModuleShell, ModuleSidebar } from '@/components/layout/ModuleShell';
-import { CreateUserModal, TeacherScheduleModal, UserDetailsModal } from '@/components/modals';
+import {
+  ModuleBody,
+  ModulePane,
+  ModulePaneHeader,
+  ModuleShell,
+  ModuleSidebar,
+  ModuleSidebarBody,
+  ModuleSidebarSection,
+} from '@/components/layout/ModuleShell';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { GenerateCarnetsModal } from '@/features/users/components/GenerateCarnetsModal';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import { DeleteUsersDialog } from '@/features/users/components/DeleteUsersDialog';
+import { GenerateCarnetsDialog } from '@/features/users/components/GenerateCarnetsDialog';
+import { ImportUsersDialog } from '@/features/users/components/ImportUsersDialog';
 import { RoleFilterPanel } from '@/features/users/components/RoleFilterPanel';
+import { TeacherScheduleDialog } from '@/features/users/components/TeacherScheduleDialog';
+import {
+  UserDetailsDialog,
+  type UserDetailTab,
+} from '@/features/users/components/UserDetailsDialog';
+import { UserFormDialog } from '@/features/users/components/UserFormDialog';
 import { UsersTable } from '@/features/users/components/UsersTable';
-import { EDUCATIONAL_STRUCTURE } from '@/data/education';
-import { MOCK_USERS } from '@/data/users';
-import { ModuleProps, UserItem } from '@/types';
+import { UsersToolbar } from '@/features/users/components/UsersToolbar';
+import { useUsersDirectory } from '@/features/users/hooks/useUsersDirectory';
+import { useUsersFilters } from '@/features/users/hooks/useUsersFilters';
+import { ROLE_META } from '@/features/users/users.constants';
+import { downloadUserQRCarnets } from '@/features/users/utils';
+import type { UserFormValues } from '@/features/users/users.form';
+import { useToast } from '@/hooks/use-toast';
+import type { ModuleProps, UserItem } from '@/types';
 
-const ROLE_PLURAL: Record<UserItem['role'], string> = {
-  Estudiante: 'Estudiantes',
-  Apoderado: 'Apoderados',
-  Docente: 'Docentes',
-  Administrativo: 'Administrativos',
-};
+/**
+ * Panel de administración de usuarios: alta, edición, baja y carga masiva
+ * sobre el padrón del colegio, con búsqueda, filtros por aula y estado, y
+ * selección múltiple.
+ *
+ * El módulo solo orquesta: los datos viven en `useUsersDirectory`, los
+ * filtros en `useUsersFilters` y cada ventana en su propio componente sobre
+ * el `Dialog` de shadcn.
+ */
+
+/** Qué ventana está abierta. Solo puede haber una, y el estado lo dice. */
+type OpenDialog =
+  | { kind: 'none' }
+  | { kind: 'form'; user: UserItem | null }
+  | { kind: 'details'; user: UserItem; tab: UserDetailTab }
+  | { kind: 'delete'; users: UserItem[] }
+  | { kind: 'schedule'; teacher: UserItem }
+  | { kind: 'carnets' }
+  | { kind: 'import' };
 
 export const UsersModule: React.FC<ModuleProps> = () => {
-  // Estado Principal
-  const [selectedRole, setSelectedRole] = useState<UserItem['role']>('Estudiante');
+  const directory = useUsersDirectory();
+  const filters = useUsersFilters(directory.users);
+  const { toast } = useToast();
 
-  // Filtros
-  const [selectedLevel, setSelectedLevel] = useState('Todos');
-  const [selectedGrade, setSelectedGrade] = useState('Todos');
-  const [selectedSection, setSelectedSection] = useState('Todos');
-  const [selectedStatus, setSelectedStatus] = useState('Todos');
-  const [search, setSearch] = useState('');
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [dialog, setDialog] = useState<OpenDialog>({ kind: 'none' });
+  const closeDialog = () => setDialog({ kind: 'none' });
 
-  // Paginación
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const meta = ROLE_META[filters.role];
 
-  // Contador de filtros activos
-  const activeFiltersCount = useMemo(() => {
-    let count = 0;
-    if (selectedLevel !== 'Todos') count++;
-    if (selectedGrade !== 'Todos') count++;
-    if (selectedSection !== 'Todos') count++;
-    if (selectedStatus !== 'Todos') count++;
-    return count;
-  }, [selectedLevel, selectedGrade, selectedSection, selectedStatus]);
-
-  const clearFilters = () => {
-    setSelectedLevel('Todos');
-    setSelectedGrade('Todos');
-    setSelectedSection('Todos');
-    setSelectedStatus('Todos');
-    setSearch('');
+  const handleSubmitForm = (values: UserFormValues) => {
+    const editing = dialog.kind === 'form' ? dialog.user : null;
+    if (editing) {
+      directory.updateUser(editing.id, values);
+      toast({
+        title: 'Cambios guardados',
+        description: `Se actualizaron los datos de ${values.name.trim()}.`,
+      });
+    } else {
+      directory.createUser(values);
+      toast({
+        title: 'Usuario creado',
+        description: `${values.name.trim()} ya figura en la lista de ${ROLE_META[values.role].plural.toLowerCase()}.`,
+      });
+      // Que el registro recién creado se vea: si estaba listando otro rol,
+      // guardar dejaba la lista igual y parecía que no había pasado nada.
+      if (values.role !== filters.role) filters.setRole(values.role);
+    }
+    closeDialog();
   };
 
-  // Modales
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isCarnetModalOpen, setIsCarnetModalOpen] = useState(false);
-  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<UserItem | null>(null);
-  const [selectedTeacherForSchedule, setSelectedTeacherForSchedule] = useState<UserItem | null>(null);
-  const [initialModalTab, setInitialModalTab] = useState<'personal' | 'academic' | 'family' | 'account'>('personal');
-
-  // --- LÓGICA DE DATOS ---
-
-  // Filtros en cascada. Al cambiar un filtro se reinician los que dependen de
-  // él y se vuelve a la primera página. Se resuelve en los manejadores y no en
-  // efectos: así el cambio ocurre en un único render, sin estados intermedios
-  // inconsistentes (p. ej. un grado que no pertenece al nivel recién elegido).
-  const changeRole = (role: typeof selectedRole) => {
-    setSelectedRole(role);
-    clearFilters();
-    setCurrentPage(1);
-  };
-
-  const changeLevel = (level: string) => {
-    setSelectedLevel(level);
-    setSelectedGrade('Todos');
-    setSelectedSection('Todos');
-    setCurrentPage(1);
-  };
-
-  const changeGrade = (grade: string) => {
-    setSelectedGrade(grade);
-    setSelectedSection('Todos');
-    setCurrentPage(1);
-  };
-
-  const changeSection = (section: string) => {
-    setSelectedSection(section);
-    setCurrentPage(1);
-  };
-
-  const changeStatus = (status: string) => {
-    setSelectedStatus(status);
-    setCurrentPage(1);
-  };
-
-  const changeSearch = (value: string) => {
-    setSearch(value);
-    setCurrentPage(1);
-  };
-
-  // Opciones Dinámicas
-  const gradeOptions = useMemo(() => {
-    if (selectedLevel === 'Todos' || !EDUCATIONAL_STRUCTURE[selectedLevel]) return [];
-    return Object.keys(EDUCATIONAL_STRUCTURE[selectedLevel]);
-  }, [selectedLevel]);
-
-  const sectionOptions = useMemo(() => {
-    if (selectedLevel === 'Todos' || selectedGrade === 'Todos') return [];
-    return EDUCATIONAL_STRUCTURE[selectedLevel][selectedGrade] || [];
-  }, [selectedLevel, selectedGrade]);
-
-  // Cálculo de Estadísticas (Contadores)
-  const stats = useMemo(() => {
-    return {
-      estudiantes: MOCK_USERS.filter(u => u.role === 'Estudiante').length,
-      docentes: MOCK_USERS.filter(u => u.role === 'Docente').length,
-      apoderados: MOCK_USERS.filter(u => u.role === 'Apoderado').length,
-      administrativos: MOCK_USERS.filter(u => u.role === 'Administrativo').length,
-    };
-  }, []);
-
-  // Filtrado de Usuarios
-  const filteredUsers = useMemo(() => {
-    return MOCK_USERS.filter(u => {
-      const matchesRole = u.role === selectedRole;
-      const matchesSearch = u.name.toLowerCase().includes(search.toLowerCase()) || u.dni.includes(search);
-      const matchesLevel = selectedLevel === 'Todos' || u.level === selectedLevel;
-      const matchesGrade = selectedGrade === 'Todos' || u.grade === selectedGrade;
-      const matchesSection = selectedSection === 'Todos' || u.section === selectedSection;
-      const matchesStatus = selectedStatus === 'Todos' || u.status === selectedStatus;
-
-      return matchesRole && matchesSearch && matchesLevel && matchesGrade && matchesSection && matchesStatus;
+  const handleConfirmDelete = () => {
+    if (dialog.kind !== 'delete') return;
+    const { users } = dialog;
+    directory.deleteUsers(users.map((user) => user.id));
+    toast({
+      title: users.length === 1 ? 'Usuario eliminado' : `${users.length} usuarios eliminados`,
+      description:
+        users.length === 1
+          ? `${users[0].name} ya no figura en el padrón.`
+          : 'Los registros seleccionados ya no figuran en el padrón.',
     });
-  }, [search, selectedRole, selectedLevel, selectedGrade, selectedSection, selectedStatus]);
+    closeDialog();
+  };
 
-  // Paginación
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
-  const paginatedUsers = filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const handleImport = (rows: UserFormValues[]) => {
+    directory.importUsers(rows);
+    toast({
+      title: `${rows.length} ${rows.length === 1 ? 'usuario importado' : 'usuarios importados'}`,
+      description: 'Ya aparecen en la lista del rol que les corresponde.',
+    });
+    closeDialog();
+  };
+
+  const handleDownloadCarnet = async (user: UserItem) => {
+    toast({ title: 'Generando carnets', description: `Preparando el PDF de ${user.name}…` });
+    try {
+      const { failed } = await downloadUserQRCarnets(user);
+      toast({
+        title: 'Carnets descargados',
+        description:
+          failed === 0
+            ? `PDF con los carnets de ${user.name}.`
+            : `PDF descargado, pero ${failed} códigos QR no se pudieron generar.`,
+      });
+    } catch {
+      toast({
+        title: 'No se pudo generar el PDF',
+        description: 'Revisa tu conexión e inténtalo de nuevo.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   return (
-    <ModuleShell>
-      <ModuleSidebar title="Usuarios" icon={Users}>
-        <div className="hidden-scrollbar flex-1 space-y-6 overflow-y-auto p-3">
-          <div>
-            <div className="px-2 pb-1 pt-2">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">Tipo de usuario</h3>
+    <TooltipProvider delayDuration={200}>
+      <ModuleShell>
+        <ModuleSidebar title="Usuarios" icon={Users}>
+          <ModuleSidebarBody>
+            <ModuleSidebarSection label="Tipo de usuario">
+              <RoleFilterPanel
+                selectedRole={filters.role}
+                onSelectRole={filters.setRole}
+                countsByRole={directory.countsByRole}
+              />
+            </ModuleSidebarSection>
+          </ModuleSidebarBody>
+        </ModuleSidebar>
+
+        <ModulePane>
+          <ModulePaneHeader>
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <meta.icon size={24} strokeWidth={2} />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-lg font-bold text-slate-800 dark:text-white">
+                  {meta.plural}
+                </p>
+                <p className="truncate text-base text-slate-500 dark:text-slate-400">
+                  {filters.filteredUsers.length}{' '}
+                  {filters.filteredUsers.length === 1 ? 'registrado' : 'registrados'}
+                  {filters.activeFiltersCount > 0 && ` de ${directory.countsByRole[filters.role]}`}
+                </p>
+              </div>
             </div>
-            <RoleFilterPanel selectedRole={selectedRole} onSelectRole={changeRole} stats={stats} />
-          </div>
-        </div>
-      </ModuleSidebar>
 
-      <ModulePane>
-        <ModulePaneHeader>
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400">
-              <IdCard size={20} strokeWidth={2} />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-lg font-bold text-slate-800 dark:text-white">
-                {ROLE_PLURAL[selectedRole]}
-              </p>
-              <p className="truncate text-sm text-slate-500 dark:text-slate-400">
-                {filteredUsers.length} {filteredUsers.length === 1 ? 'registrado' : 'registrados'}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex shrink-0 gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setIsCarnetModalOpen(true)}
-              className="h-10 rounded-xl px-4 font-bold shadow-sm"
-            >
-              <IdCard size={18} /> Descargar carnets
-            </Button>
-            <Button onClick={() => setIsModalOpen(true)} className="h-10 rounded-xl px-4 font-bold shadow-sm">
-              <Plus size={18} /> Crear usuario
-            </Button>
-          </div>
-        </ModulePaneHeader>
-
-        <ModuleBody centered>
-          <div className="relative">
-            <Search
-              className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-              size={20}
-            />
-            <Input
-              type="text"
-              placeholder="Buscar por nombre o documento..."
-              value={search}
-              onChange={(e) => changeSearch(e.target.value)}
-              className="h-12 rounded-xl pl-12 text-base shadow-sm"
-            />
-          </div>
-
-          <div className="flex items-center gap-4 px-2">
-            <span className="text-sm font-bold text-slate-500 dark:text-slate-400">
-              Mostrando {paginatedUsers.length} de {filteredUsers.length} {ROLE_PLURAL[selectedRole].toLowerCase()}
-            </span>
-            {activeFiltersCount > 0 && (
+            <div className="flex shrink-0 items-center gap-2">
               <Button
                 type="button"
-                variant="ghost"
-                onClick={clearFilters}
-                className="h-10 gap-2 px-3 text-sm font-bold text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10"
+                variant="outline"
+                onClick={() => setDialog({ kind: 'import' })}
+                className="h-10 gap-2 rounded-xl px-4 text-base font-semibold"
               >
-                <X size={16} /> Limpiar filtros
+                <Upload size={20} /> Subir usuarios
               </Button>
-            )}
-          </div>
+              <Button
+                type="button"
+                onClick={() => setDialog({ kind: 'form', user: null })}
+                className="h-10 gap-2 rounded-xl px-4 text-base font-semibold"
+              >
+                <Plus size={20} /> Crear usuario
+              </Button>
+            </div>
+          </ModulePaneHeader>
 
-          <UsersTable
-            paginatedUsers={paginatedUsers}
-            selectedRole={selectedRole}
-            selectedLevel={selectedLevel}
-            changeLevel={changeLevel}
-            selectedGrade={selectedGrade}
-            changeGrade={changeGrade}
-            selectedSection={selectedSection}
-            changeSection={changeSection}
-            gradeOptions={gradeOptions}
-            sectionOptions={sectionOptions}
-            selectedStatus={selectedStatus}
-            changeStatus={changeStatus}
-            openDropdown={openDropdown}
-            setOpenDropdown={setOpenDropdown}
-            setSelectedUser={setSelectedUser}
-            setInitialModalTab={setInitialModalTab}
-            setSelectedTeacherForSchedule={setSelectedTeacherForSchedule}
-            setIsScheduleModalOpen={setIsScheduleModalOpen}
-            currentPage={currentPage}
-            setCurrentPage={setCurrentPage}
-            totalPages={totalPages}
-          />
-        </ModuleBody>
-      </ModulePane>
+          {/* Barra fija, igual que en la Vista General del Aula: no entra en
+              el scroll, que vive dentro de la propia tabla. */}
+          <UsersToolbar filters={filters} onDownloadCarnets={() => setDialog({ kind: 'carnets' })} />
 
-      <AnimatePresence>
-        {isModalOpen && <CreateUserModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />}
-        {selectedUser && (
-          <UserDetailsModal
-            user={selectedUser}
-            onClose={() => {
-              setSelectedUser(null);
-              setInitialModalTab('personal');
-            }}
-            initialTab={initialModalTab}
-          />
-        )}
-        {isScheduleModalOpen && selectedTeacherForSchedule && (
-          <TeacherScheduleModal
-            teacher={selectedTeacherForSchedule}
-            onClose={() => {
-              setIsScheduleModalOpen(false);
-              setSelectedTeacherForSchedule(null);
-            }}
-          />
-        )}
-        {isCarnetModalOpen && (
-          <GenerateCarnetsModal
-            onClose={() => setIsCarnetModalOpen(false)}
-            selectedLevel={selectedLevel}
-            changeLevel={changeLevel}
-            selectedGrade={selectedGrade}
-            changeGrade={changeGrade}
-            selectedSection={selectedSection}
-            changeSection={changeSection}
-            gradeOptions={gradeOptions}
-            sectionOptions={sectionOptions}
-          />
-        )}
-      </AnimatePresence>
-    </ModuleShell>
+          {/* A sangre y sin scroll propio: la pantalla *es* la tabla, así que
+              llega a los bordes del panel y se desplaza por dentro. */}
+          <ModuleBody flush className="flex min-h-0 flex-col overflow-hidden">
+            <UsersTable
+              filters={filters}
+              activeUserId={dialog.kind === 'details' ? dialog.user.id : null}
+              onView={(user) => setDialog({ kind: 'details', user, tab: 'personal' })}
+              onEdit={(user) => setDialog({ kind: 'form', user })}
+              onDelete={(user) => setDialog({ kind: 'delete', users: [user] })}
+              onDownloadCarnet={(user) => void handleDownloadCarnet(user)}
+              onViewSchedule={(teacher) => setDialog({ kind: 'schedule', teacher })}
+              onCreate={() => setDialog({ kind: 'form', user: null })}
+            />
+          </ModuleBody>
+        </ModulePane>
+
+        <UserFormDialog
+          open={dialog.kind === 'form'}
+          user={dialog.kind === 'form' ? dialog.user : null}
+          defaultRole={filters.role}
+          existingDnis={directory.existingDnis}
+          onClose={closeDialog}
+          onSubmit={handleSubmitForm}
+        />
+
+        <UserDetailsDialog
+          open={dialog.kind === 'details'}
+          user={dialog.kind === 'details' ? dialog.user : null}
+          users={directory.users}
+          initialTab={dialog.kind === 'details' ? dialog.tab : 'personal'}
+          onClose={closeDialog}
+          onEdit={(user) => setDialog({ kind: 'form', user })}
+          onOpenRelated={(user) => setDialog({ kind: 'details', user, tab: 'personal' })}
+        />
+
+        <DeleteUsersDialog
+          open={dialog.kind === 'delete'}
+          users={dialog.kind === 'delete' ? dialog.users : []}
+          onClose={closeDialog}
+          onConfirm={handleConfirmDelete}
+        />
+
+        <TeacherScheduleDialog
+          open={dialog.kind === 'schedule'}
+          teacher={dialog.kind === 'schedule' ? dialog.teacher : null}
+          onClose={closeDialog}
+        />
+
+        <GenerateCarnetsDialog
+          open={dialog.kind === 'carnets'}
+          users={directory.users}
+          initialClassroom={{
+            level: filters.level,
+            grade: filters.grade,
+            section: filters.section,
+          }}
+          onClose={closeDialog}
+          onFinished={(studentCount, failed) =>
+            toast({
+              title: 'Carnets descargados',
+              description:
+                failed === 0
+                  ? `PDF con los carnets de ${studentCount} ${studentCount === 1 ? 'estudiante' : 'estudiantes'}.`
+                  : `PDF descargado, pero ${failed} códigos QR no se pudieron generar.`,
+            })
+          }
+          onError={() =>
+            toast({
+              title: 'No se pudo generar el PDF',
+              description: 'Revisa tu conexión e inténtalo de nuevo.',
+              variant: 'destructive',
+            })
+          }
+        />
+
+        <ImportUsersDialog
+          open={dialog.kind === 'import'}
+          existingDnis={directory.existingDnis}
+          onClose={closeDialog}
+          onImport={handleImport}
+        />
+      </ModuleShell>
+    </TooltipProvider>
   );
 };

@@ -5,8 +5,10 @@
 @layer base {
   /*
    * Tokens de shadcn/ui mapeados a la identidad visual de Intelicole:
-   * primary = #3030b8 (azul institucional), foreground = #0a2540 (navy),
-   * ring = #00c2ff (cian de marca).
+   * primary = #3030b8 (azul institucional), foreground = #0a2540 (navy).
+   * `accent` y `ring` eran el cian de marca (#00c2ff): el celeste se retiró
+   * del sistema y ambos siguen ahora al azul institucional, así que el foco de
+   * teclado y los estados activos son del mismo color que la acción principal.
    */
   :root {
     --background: 0 0% 100%;
@@ -27,15 +29,15 @@
     --muted: 210 40% 96%;
     --muted-foreground: 215 16% 47%;
 
-    --accent: 194 100% 50%;
-    --accent-foreground: 210 73% 15%;
+    --accent: 240 59% 45%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 347 77% 50%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 194 100% 50%;
+    --ring: 240 59% 45%;
 
     --radius: 0.75rem;
   }
@@ -60,15 +62,15 @@
     --muted: 0 0% 13%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 194 100% 50%;
-    --accent-foreground: 0 0% 0%;
+    --accent: 240 59% 60%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 347 77% 50%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 0 0% 20%;
     --input: 0 0% 20%;
-    --ring: 194 100% 50%;
+    --ring: 240 59% 60%;
   }
 
   body {
@@ -87,6 +89,36 @@
     -ms-overflow-style: none; /* IE y Edge */
     scrollbar-width: none; /* Firefox */
   }
+
+  /*
+   * Barra de scroll propia: la misma en toda la app (cuerpo de los modales,
+   * tablas, listas). Sustituye a la nativa del navegador, que en Windows es
+   * ancha, gris y rompe el radio del contenedor. Fina, sin flechas y del color
+   * del borde del tema, así que también funciona en oscuro y en el tema Rojo.
+   */
+  .custom-scrollbar {
+    scrollbar-width: thin; /* Firefox */
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border: 3px solid transparent;
+    background-clip: content-box;
+    border-radius: 9999px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.6);
+  }
+  .custom-scrollbar::-webkit-scrollbar-corner {
+    background: transparent;
+  }
 }
 
 /* Feedback global al presionar botones. */
@@ -99,9 +131,6 @@ button:active.bg-\[\#3030b8\] {
 }
 button:active.bg-rose-600 {
   box-shadow: 0 0 0 4px rgba(225, 29, 72, 0.3) !important;
-}
-button:active.bg-\[\#00c2ff\] {
-  box-shadow: 0 0 0 4px rgba(0, 194, 255, 0.3) !important;
 }
 button:active.bg-\[\#00a884\] {
   box-shadow: 0 0 0 4px rgba(0, 168, 132, 0.3) !important;
@@ -137,16 +166,17 @@ button:active.bg-\[\#00a884\] {
 
   /* Tokens semánticos: todo componente construido sobre ellos (Button,
      Select, foco de teclado…) sigue el tema sin reglas adicionales. */
+  /* `accent`/`ring` acompañan a `primary` (antes eran el celeste, un tono
+     claro): con `accent-foreground` en blanco necesitan el tono fuerte. */
   --primary: var(--rojo-600);
-  --accent: var(--rojo-300);
-  --ring: var(--rojo-300);
+  --accent: var(--rojo-600);
+  --ring: var(--rojo-600);
 }
 
 :root[data-theme='rojo'] .text-blue-700 { color: hsl(var(--rojo-700)) !important; }
 :root[data-theme='rojo'] .text-blue-600 { color: hsl(var(--rojo-600)) !important; }
 :root[data-theme='rojo'] .text-blue-500 { color: hsl(var(--rojo-500)) !important; }
 :root[data-theme='rojo'] .text-blue-400 { color: hsl(var(--rojo-400)) !important; }
-:root[data-theme='rojo'] .text-cyan-500 { color: hsl(var(--rojo-300)) !important; }
 :root[data-theme='rojo'] .bg-blue-600 { background-color: hsl(var(--rojo-600)) !important; }
 :root[data-theme='rojo'] .bg-blue-50 { background-color: hsl(var(--rojo-50)) !important; }
 :root[data-theme='rojo'] .bg-blue-50\/80 { background-color: hsl(var(--rojo-50) / 0.8) !important; }
@@ -165,7 +195,7 @@ button:active.bg-\[\#00a884\] {
   --tw-gradient-to: hsl(var(--rojo-600) / 0) var(--tw-gradient-to-position) !important;
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
 }
-:root[data-theme='rojo'] .to-cyan-500 { --tw-gradient-to: hsl(var(--rojo-400)) var(--tw-gradient-to-position) !important; }
+:root[data-theme='rojo'] .to-blue-400 { --tw-gradient-to: hsl(var(--rojo-400)) var(--tw-gradient-to-position) !important; }
 :root[data-theme='rojo'] .shadow-blue-200 {
   --tw-shadow-color: hsl(var(--rojo-200)) !important;
   --tw-shadow: var(--tw-shadow-colored) !important;

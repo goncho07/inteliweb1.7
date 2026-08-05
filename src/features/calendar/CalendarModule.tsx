@@ -3,10 +3,17 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
-  Clock,
 } from 'lucide-react';
 
-import { ModuleBody, ModulePane, ModulePaneHeader, ModuleShell, ModuleSidebar } from '@/components/layout/ModuleShell';
+import {
+  ModuleBody,
+  ModulePane,
+  ModulePaneHeader,
+  ModuleShell,
+  ModuleSidebar,
+  ModuleSidebarBody,
+  ModuleSidebarSection,
+} from '@/components/layout/ModuleShell';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
@@ -81,51 +88,52 @@ export const CalendarModule: React.FC<ModuleProps> = ({ globalDate, setGlobalDat
   return (
     <ModuleShell>
       <ModuleSidebar title="Calendario" icon={CalendarDays}>
-        <div className="hidden-scrollbar flex-1 space-y-6 overflow-y-auto p-3">
-          <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="mb-3 flex items-center justify-between border-b-2 border-slate-100 pb-3 dark:border-slate-800">
-              <h4 className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                <Clock size={16} /> Tu horario: {selectedWeekday ?? todayScheduleDay}
-              </h4>
-            </div>
-            <div className="flex flex-col gap-2">
-              {SCHEDULE_TIME_SLOTS.map((slot, i) => {
-                const weekday = selectedWeekday ?? todayScheduleDay;
-                const classData = TEACHER_SCHEDULE[weekday]?.find((t) => t.start === slot.start);
-                if (slot.isRecreo) {
-                  return (
-                    <div key={i} className="flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-1.5 dark:bg-slate-800/60">
-                      <span className="w-12 shrink-0 text-xs font-black text-slate-400">{slot.start}</span>
-                      <span className="text-xs font-black uppercase tracking-wider text-slate-400">Recreo</span>
-                    </div>
-                  );
-                }
-                if (!classData || classData.subject === 'LIBRE') {
-                  return (
-                    <div key={i} className="flex items-center gap-3 rounded-lg border border-dashed border-slate-200 px-3 py-1.5 dark:border-slate-700">
-                      <span className="w-12 shrink-0 text-xs font-black text-slate-400">{slot.start}</span>
-                      <span className="text-xs font-bold italic text-slate-400">Hora libre</span>
-                    </div>
-                  );
-                }
+        <ModuleSidebarBody>
+          <ModuleSidebarSection label={`Tu horario: ${selectedWeekday ?? todayScheduleDay}`}>
+            {SCHEDULE_TIME_SLOTS.map((slot, i) => {
+              const weekday = selectedWeekday ?? todayScheduleDay;
+              const classData = TEACHER_SCHEDULE[weekday]?.find((t) => t.start === slot.start);
+              // Alto e interlineado únicos para las tres variantes de franja,
+              // para que el horario lea como una sola lista.
+              const rowClass = 'flex min-h-11 items-center gap-3 rounded-xl px-3 py-2';
+              if (slot.isRecreo) {
                 return (
-                  <div key={i} className={cn('flex items-center gap-3 rounded-lg border px-3 py-1.5', classData.color)}>
-                    <span className="w-12 shrink-0 text-xs font-black opacity-70">{slot.start}</span>
-                    <span className="flex-1 truncate text-xs font-bold">{classData.subject}</span>
-                    {classData.section && <span className="shrink-0 text-xs font-black opacity-70">{classData.section}</span>}
+                  <div key={i} className={cn(rowClass, 'bg-slate-50 dark:bg-slate-800/60')}>
+                    <span className="w-12 shrink-0 text-sm font-bold text-slate-400">{slot.start}</span>
+                    <span className="text-sm font-bold uppercase tracking-wider text-slate-400">Recreo</span>
                   </div>
                 );
-              })}
-            </div>
-          </div>
-        </div>
+              }
+              if (!classData || classData.subject === 'LIBRE') {
+                return (
+                  <div
+                    key={i}
+                    className={cn(rowClass, 'border border-dashed border-slate-200 dark:border-slate-700')}
+                  >
+                    <span className="w-12 shrink-0 text-sm font-bold text-slate-400">{slot.start}</span>
+                    <span className="text-sm font-semibold italic text-slate-400">Hora libre</span>
+                  </div>
+                );
+              }
+              return (
+                <div key={i} className={cn(rowClass, 'border', classData.color)}>
+                  <span className="w-12 shrink-0 text-sm font-bold opacity-70">{slot.start}</span>
+                  <span className="flex-1 truncate text-sm font-bold">{classData.subject}</span>
+                  {classData.section && (
+                    <span className="shrink-0 text-sm font-bold opacity-70">{classData.section}</span>
+                  )}
+                </div>
+              );
+            })}
+          </ModuleSidebarSection>
+        </ModuleSidebarBody>
       </ModuleSidebar>
 
       <ModulePane>
         <ModulePaneHeader>
-          <div className="flex flex-wrap items-center gap-3">
-            <h2 className="text-lg font-bold text-slate-800 dark:text-white">{headerLabel}</h2>
-            <div className="flex items-center gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800">
+          <div className="flex min-w-0 items-center gap-3">
+            <h2 className="truncate text-lg font-bold text-slate-800 dark:text-white">{headerLabel}</h2>
+            <div className="flex shrink-0 items-center gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800">
               {([
                 ['dia', 'Día'],
                 ['semana', 'Semana'],

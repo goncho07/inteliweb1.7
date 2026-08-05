@@ -1,7 +1,8 @@
-/** Punto de entrada único de los modales de la aplicación. */
+/**
+ * Modales compartidos por más de un módulo. Los de Usuarios (ficha, alta,
+ * horario, carnets, carga masiva) viven en `@/features/users/components`:
+ * solo se usan ahí.
+ */
 
 export { AIChatPanel } from './AIChatPanel';
-export { CreateUserModal } from './CreateUserModal';
 export { HelpCenterModal } from './HelpCenterModal';
-export { TeacherScheduleModal } from './TeacherScheduleModal';
-export { UserDetailsModal } from './UserDetailsModal';

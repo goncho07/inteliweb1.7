@@ -66,10 +66,10 @@ export interface Bimestre {
  * bimestres registrados que estos 4.
  */
 export const BIMESTRES: Bimestre[] = [
-  { id: 1, label: '1er Bimestre', range: '02 mar – 08 may', start: new Date(2026, 2, 2), end: new Date(2026, 4, 8) },
-  { id: 2, label: '2do Bimestre', range: '11 may – 24 jul', start: new Date(2026, 4, 11), end: new Date(2026, 6, 24) },
-  { id: 3, label: '3er Bimestre', range: '10 ago – 16 oct', start: new Date(2026, 7, 10), end: new Date(2026, 9, 16) },
-  { id: 4, label: '4to Bimestre', range: '19 oct – 18 dic', start: new Date(2026, 9, 19), end: new Date(2026, 11, 18) },
+  { id: 1, label: '1° Bimestre', range: '02 mar – 08 may', start: new Date(2026, 2, 2), end: new Date(2026, 4, 8) },
+  { id: 2, label: '2° Bimestre', range: '11 may – 24 jul', start: new Date(2026, 4, 11), end: new Date(2026, 6, 24) },
+  { id: 3, label: '3° Bimestre', range: '10 ago – 16 oct', start: new Date(2026, 7, 10), end: new Date(2026, 9, 16) },
+  { id: 4, label: '4° Bimestre', range: '19 oct – 18 dic', start: new Date(2026, 9, 19), end: new Date(2026, 11, 18) },
 ];
 
 /**

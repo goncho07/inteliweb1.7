@@ -40,6 +40,51 @@ const AVATAR_COLORS = [
 
 const LEVELS: UserItem['level'][] = ['Inicial', 'Primaria', 'Secundaria'];
 
+/** Cursos que puede dictar un docente, para el campo `subject`. */
+const SUBJECTS = [
+  'Matemática', 'Comunicación', 'Ciencia y Tecnología', 'Personal Social',
+  'Inglés', 'Arte y Cultura', 'Educación Física', 'Religión',
+];
+
+/** Cargos de dirección: los cinco primeros administrativos, en este orden. */
+const DIRECTIVE_POSITIONS = [
+  'Director', 'Subdirector', 'Coordinador académico', 'Coordinador de convivencia', 'Coordinador de nivel',
+];
+
+/** Cargos del resto del personal administrativo. */
+const STAFF_POSITIONS = [
+  'Secretaría', 'Auxiliar de educación', 'Psicología', 'Tesorería', 'Soporte informático', 'Biblioteca',
+];
+
+/** Vías de la zona, para componer una dirección verosímil. */
+const STREETS = [
+  'Av. Los Héroes', 'Jr. Túpac Amaru', 'Calle Las Begonias', 'Av. Perú',
+  'Jr. Ricardo Palma', 'Calle Los Álamos', 'Av. Central', 'Jr. San Martín',
+];
+
+/** Edad de referencia por nivel, para derivar una fecha de nacimiento verosímil. */
+const AGE_BY_LEVEL: Record<string, [number, number]> = {
+  Inicial: [3, 5],
+  Primaria: [6, 11],
+  Secundaria: [12, 17],
+};
+
+/** Año escolar de referencia de los datos simulados. */
+const SCHOOL_YEAR = 2026;
+
+/**
+ * Fecha de nacimiento estable en ISO (`AAAA-MM-DD`). La edad se deduce del
+ * nivel para los estudiantes; el resto son adultos de 25 a 60 años.
+ */
+const seededBirthDate = (seed: string, role: UserItem['role'], level?: UserItem['level']): string => {
+  const [minAge, maxAge] =
+    role === 'Estudiante' && level ? AGE_BY_LEVEL[level] ?? [6, 11] : [25, 60];
+  const year = SCHOOL_YEAR - seededInt(`${seed}-edad`, minAge, maxAge);
+  const month = seededInt(`${seed}-mes`, 1, 12);
+  const day = seededInt(`${seed}-dia`, 1, 28);
+  return `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+};
+
 /** Elige un elemento de `list` de forma estable: la misma `seed` siempre devuelve el mismo elemento. */
 const pickSeeded = <T,>(list: T[], seed: string): T => list[Math.floor(pseudoRandom(seed) * list.length)];
 
@@ -86,7 +131,11 @@ const generateRandomUser = (
     avatarColor: pickSeeded(AVATAR_COLORS, `user-${id}-avatar`),
     email: `${firstName.toLowerCase()}.${lastName1.toLowerCase()}@peepos.edu.pe`,
     phone: `9${seededInt(`user-${id}-phone`, 10000000, 99999999)}`,
-    address: 'Av. Siempre Viva 123',
+    address: `${pickSeeded(STREETS, `user-${id}-calle`)} ${seededInt(`user-${id}-numero`, 100, 1999)}`,
+    birthDate: seededBirthDate(`user-${id}`, role, level),
+    modularCode:
+      role === 'Estudiante' ? seededInt(`user-${id}-modular`, 10000000, 99999999).toString().padStart(14, '0') : undefined,
+    subject: role === 'Docente' ? pickSeeded(SUBJECTS, `user-${id}-curso`) : undefined,
   };
 };
 
@@ -117,11 +166,18 @@ const sameClassroom = (a: ClassroomRef, b: ClassroomRef): boolean =>
  * pasan a `'docente'`; del personal administrativo, los primeros 5 son
  * `'directivo'` y el resto `'auxiliar'`; todos los apoderados son
  * `'apoderado'`. Los estudiantes quedan sin `appRole` — no inician sesión.
+ * De paso fija el `position` (cargo) coherente con ese reparto: los cinco
+ * directivos toman los cargos de dirección en orden y el resto un cargo de
+ * apoyo, para que no aparezcan dos «Director» ni un auxiliar como director.
  */
 const assignAppRoles = (users: UserItem[]): void => {
   const administrativeStaff = users.filter((u) => u.role === 'Administrativo');
   administrativeStaff.forEach((u, index) => {
     u.appRole = index < 5 ? 'directivo' : 'auxiliar';
+    u.position =
+      index < DIRECTIVE_POSITIONS.length
+        ? DIRECTIVE_POSITIONS[index]
+        : pickSeeded(STAFF_POSITIONS, `admin-${u.id}-cargo`);
   });
   users.forEach((u) => {
     if (u.role === 'Docente') u.appRole = 'docente';

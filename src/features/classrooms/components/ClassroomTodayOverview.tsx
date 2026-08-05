@@ -6,18 +6,16 @@ import { useToast } from '@/hooks/use-toast';
 import type { ClassroomRef } from '@/features/classrooms/types';
 import { formatStudentDisplayName, getClassroomLabel } from '@/features/classrooms/overview.format';
 import { getCitationsForAula } from '@/features/classrooms/overview.citations';
-import { getPeriodLabel, getPeriodRange, stepPeriod, type PeriodId } from '@/features/classrooms/overview.period';
+import { getMonthLabel, getMonthRange, stepMonth } from '@/features/classrooms/overview.period';
 import { downloadAttendanceReport, downloadCitationsReport, downloadIncidentsReport } from '@/features/classrooms/overview.pdf';
 import {
   buildAttendanceGridRowsForStudents,
   buildIncidentReportRows,
   buildSchoolDays,
-  groupDaysByMonth,
   groupDaysByWeekOfMonth,
 } from '@/features/classrooms/overview.rows';
 import type { UserItem } from '@/types';
 
-import { AttendanceDayTable } from './overview/AttendanceDayTable';
 import { AttendanceGridLegend, AttendanceGridTable } from './overview/AttendanceGridTable';
 import { CitationsTable } from './overview/CitationsTable';
 import { IncidentsTable } from './overview/IncidentsTable';
@@ -34,8 +32,8 @@ const TAB_TITLES: Record<OverviewTabId, string> = {
 
 /**
  * Vista General del Aula: asistencia, incidencias y citaciones de la
- * sección elegida, navegables por periodo (hoy/día/semana/mes/bimestre) —
- * el contenido que antes vivía en el módulo Reportes, ahora integrado aquí
+ * sección elegida, mes a mes (los reportes del colegio siempre son
+ * mensuales) — el contenido que antes vivía en el módulo Reportes, ahora integrado aquí
  * para no repetir la navegación por aula (ya la resuelve `ClassroomSidebar`).
  * Asistencia e Incidencias se generan a partir del padrón real de alumnos
  * (`students`); Citaciones solo lee `INITIAL_CITATIONS`, el mismo dato que
@@ -50,7 +48,8 @@ export const ClassroomTodayOverview: React.FC<{
   const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState<OverviewTabId>('asistencia');
-  const [period, setPeriod] = useState<PeriodId>('mes');
+  // Único eje de tiempo del reporte: el mes en pantalla. No hay selector de
+  // periodo — los reportes del colegio siempre se emiten por mes.
   const [cursor, setCursor] = useState<Date>(today);
   const [search, setSearch] = useState('');
 
@@ -75,21 +74,15 @@ export const ClassroomTodayOverview: React.FC<{
     return sortedStudents.filter((s) => s.name.toLowerCase().includes(q));
   }, [sortedStudents, search]);
 
-  const { start, end } = useMemo(() => getPeriodRange(period, cursor, today), [period, cursor, today]);
-  const periodLabel = useMemo(() => getPeriodLabel(period, cursor, today), [period, cursor, today]);
+  const { start, end } = useMemo(() => getMonthRange(cursor), [cursor]);
+  const periodLabel = useMemo(() => getMonthLabel(cursor), [cursor]);
 
   const schoolDays = useMemo(() => buildSchoolDays(start, end), [start, end]);
-  const dayGroups = useMemo(() => {
-    if (period === 'bimestre') return groupDaysByMonth(schoolDays);
-    if (period === 'mes') return groupDaysByWeekOfMonth(schoolDays);
-    // "Semana": ya es una única semana, un solo grupo con la etiqueta del periodo (evita partirla si cruza de mes).
-    return schoolDays.length > 0 ? [{ label: periodLabel, days: schoolDays }] : [];
-  }, [schoolDays, period, periodLabel]);
+  const dayGroups = useMemo(() => groupDaysByWeekOfMonth(schoolDays), [schoolDays]);
   const attendanceRows = useMemo(
     () => buildAttendanceGridRowsForStudents(aulaSeed, schoolDays, today, filteredStudents),
     [aulaSeed, schoolDays, today, filteredStudents],
   );
-  const isSingleDayPeriod = period === 'hoy' || period === 'dia';
 
   const incidentRows = useMemo(
     () => buildIncidentReportRows(aulaSeed, filteredStudents, schoolDays, today),
@@ -151,18 +144,19 @@ export const ClassroomTodayOverview: React.FC<{
       <OverviewTabsBar activeTab={activeTab} onTabChange={setActiveTab} legend={legend} />
 
       <OverviewPeriodBar
-        period={period}
-        onPeriodChange={setPeriod}
         cursor={cursor}
         today={today}
-        onStep={(direction) => setCursor((prev) => stepPeriod(period, prev, direction))}
+        onStep={(direction) => setCursor((prev) => stepMonth(prev, direction))}
+        onToday={() => setCursor(today)}
         search={search}
         onSearchChange={setSearch}
         downloadDisabled={false}
         onDownload={handleDownload}
       />
 
-      <ModuleBody centered>
+      {/* A sangre: la cuadrícula de asistencia gana los 32px de margen por
+          lado, que ahí son casi dos días más de columnas visibles. */}
+      <ModuleBody centered flush>
         {activeTab === 'asistencia' &&
           (filteredStudents.length === 0 ? (
             <OverviewInlineEmpty
@@ -171,13 +165,11 @@ export const ClassroomTodayOverview: React.FC<{
             />
           ) : schoolDays.length === 0 ? (
             <OverviewInlineEmpty
-              title="No hay clases en la fecha seleccionada"
-              description="Elige otro día: el seleccionado cae en fin de semana."
+              title="No hay días de clase en este mes"
+              description="Elige otro mes con las flechas, o vuelve al mes en curso con el botón «Hoy»."
             />
-          ) : isSingleDayPeriod ? (
-            <AttendanceDayTable rows={attendanceRows} />
           ) : (
-            <AttendanceGridTable groups={dayGroups} rows={attendanceRows} />
+            <AttendanceGridTable groups={dayGroups} rows={attendanceRows} today={today} />
           ))}
 
         {activeTab === 'incidencias' &&

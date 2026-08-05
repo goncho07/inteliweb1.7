@@ -65,14 +65,14 @@ export const ClassroomRosterPanel: React.FC<{
         className={cn(
           'h-11 w-full justify-start gap-2 rounded-lg px-3 text-left',
           isOverviewOpen
-            ? 'bg-blue-50 text-blue-700 hover:bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400'
+            ? 'bg-primary/10 text-primary hover:bg-primary/10'
             : 'text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50',
         )}
       >
         <LayoutGrid
           size={16}
           strokeWidth={2}
-          className={cn('shrink-0', isOverviewOpen ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400')}
+          className={cn('shrink-0', isOverviewOpen ? 'text-primary' : 'text-slate-400')}
         />
         <span className={cn('truncate text-sm', isOverviewOpen ? 'font-semibold' : 'font-medium')}>
           Vista General
@@ -93,8 +93,8 @@ export const ClassroomRosterPanel: React.FC<{
               className={cn(
                 'h-auto w-full justify-start gap-2 rounded-lg border p-2 text-left group',
                 isSelected
-                  ? 'bg-blue-50/80 dark:bg-blue-900/20 border-blue-400 dark:border-blue-500 hover:bg-blue-50/80 dark:hover:bg-blue-900/20'
-                  : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-blue-300',
+                  ? 'bg-primary/10 border-primary hover:bg-primary/10'
+                  : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-primary/40',
               )}
             >
               <StudentAvatar className="h-9 w-9" />
@@ -102,8 +102,8 @@ export const ClassroomRosterPanel: React.FC<{
                 className={cn(
                   'truncate text-sm font-semibold leading-snug',
                   isSelected
-                    ? 'text-blue-700 dark:text-blue-400'
-                    : 'text-slate-800 dark:text-slate-100 group-hover:text-blue-600',
+                    ? 'text-primary'
+                    : 'text-slate-800 dark:text-slate-100 group-hover:text-primary',
                 )}
               >
                 {student.name}

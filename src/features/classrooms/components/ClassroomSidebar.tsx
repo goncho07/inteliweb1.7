@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { BookOpen, ChevronDown, ChevronRight, Folder, GraduationCap } from 'lucide-react';
+import { BookOpen, ChevronDown, ChevronRight, GraduationCap, UserRound } from 'lucide-react';
 
-import { ModuleSidebar } from '@/components/layout/ModuleShell';
+import { ModuleSidebar, ModuleSidebarBody, ModuleSidebarSection } from '@/components/layout/ModuleShell';
+import { NavCard } from '@/components/common/NavCard';
 import { Button } from '@/components/ui/button';
-import { AcademicDatesPopover } from '@/features/classrooms/components/overview/AcademicDatesPopover';
 import { ClassroomRosterPanel } from '@/features/classrooms/components/ClassroomRosterPanel';
 import { getSectionSize } from '@/data/education';
 import { useSession } from '@/features/auth/SessionContext';
@@ -80,11 +80,6 @@ export const ClassroomSidebar: React.FC<{
     return buildLevelGroups(scopedTree);
   }, [session]);
 
-  const allGroupKeys = useMemo(
-    () => levelGroups.flatMap((level) => level.gradeGroups.map((g) => `${level.level}-${g.key}`)),
-    [levelGroups],
-  );
-
   const [openGrades, setOpenGrades] = useState<Record<string, boolean>>(() =>
     expandedClassroom ? { [`${expandedClassroom.level}-${expandedClassroom.grade}`]: true } : {},
   );
@@ -102,11 +97,10 @@ export const ClassroomSidebar: React.FC<{
     }
     setOpenGrades((prev) => ({ ...prev, [key]: !isOpen }));
   };
-  const expandAll = () => setOpenGrades(Object.fromEntries(allGroupKeys.map((key) => [key, true])));
 
   return (
-    <ModuleSidebar title="Aulas" icon={BookOpen} actions={<AcademicDatesPopover />}>
-      <div className="hidden-scrollbar flex-1 space-y-3 overflow-y-auto p-3">
+    <ModuleSidebar title="Aulas" icon={BookOpen}>
+      <ModuleSidebarBody>
         {levelGroups.length === 0 && (
           <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-white p-6 text-center dark:border-slate-800 dark:bg-slate-900">
             <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-100 text-slate-400 dark:bg-slate-800">
@@ -122,128 +116,100 @@ export const ClassroomSidebar: React.FC<{
         )}
 
         {levelGroups.map((levelGroup) => (
-          <div key={levelGroup.level} className="space-y-3 rounded-2xl bg-white p-3 dark:bg-slate-900">
-            <div className="flex items-center gap-3 px-1">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400">
-                <GraduationCap size={18} strokeWidth={2} />
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-bold text-slate-800 dark:text-white">{levelGroup.level}</p>
-                <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                  {levelGroup.gradeGroups.length} {levelGroup.gradeGroups.length === 1 ? 'grado' : 'grados'} •{' '}
-                  {levelGroup.sectionCount} {levelGroup.sectionCount === 1 ? 'sección' : 'secciones'} (
-                  {levelGroup.totalStudents.toLocaleString('es-PE')} est.)
-                </p>
-              </div>
-            </div>
+          <ModuleSidebarSection
+            key={levelGroup.level}
+            label={levelGroup.level}
+          >
+            {levelGroup.gradeGroups.map((group) => {
+              const isGradeOpen = isGradeOpenFor(levelGroup.level, group.key);
+              return (
+                <div key={group.key} className="flex flex-col gap-2">
+                  {/* Misma tarjeta que el selector de bimestre de Inicio y el de
+                      rol de Usuarios: idéntico alto, radio, tipografía y sangría. */}
+                  <NavCard
+                    title={group.label}
+                    statLines={[`${group.totalCount} estudiantes`]}
+                    selected={isGradeOpen}
+                    onClick={() => toggleGrade(levelGroup.level, group.key)}
+                    leadingClassName={isGradeOpen ? 'bg-primary' : 'bg-slate-100 dark:bg-slate-800'}
+                    leading={
+                      isGradeOpen ? (
+                        <ChevronDown size={20} strokeWidth={2.5} className="text-white" />
+                      ) : (
+                        <ChevronRight size={20} strokeWidth={2.5} className="text-slate-500 dark:text-slate-400" />
+                      )
+                    }
+                  />
 
-            <div className="space-y-3">
-              <div className="flex items-center justify-between px-1">
-                <p className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                  Carpetas por grado
-                </p>
-                <Button
-                  type="button"
-                  variant="link"
-                  onClick={expandAll}
-                  className="h-10 px-2 text-xs font-semibold text-blue-700 dark:text-blue-400"
-                >
-                  Ver todo
-                </Button>
-              </div>
-
-              <div className="space-y-2">
-                {levelGroup.gradeGroups.map((group) => {
-                  const isGradeOpen = isGradeOpenFor(levelGroup.level, group.key);
-                  return (
-                    <div key={group.key} className="rounded-xl border border-slate-200 dark:border-slate-800">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => toggleGrade(levelGroup.level, group.key)}
-                        aria-expanded={isGradeOpen}
-                        className="h-11 w-full justify-between gap-2 rounded-xl px-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                      >
-                        <span className="flex min-w-0 items-center gap-2">
-                          {isGradeOpen ? (
-                            <ChevronDown size={16} strokeWidth={2} className="shrink-0 text-slate-400" />
-                          ) : (
-                            <ChevronRight size={16} strokeWidth={2} className="shrink-0 text-slate-400" />
-                          )}
-                          <span className="truncate text-sm font-bold text-slate-800 dark:text-white">{group.label}</span>
-                        </span>
-                        <span className="shrink-0 text-xs font-semibold text-slate-400 dark:text-slate-500">
-                          {group.totalCount} est.
-                        </span>
-                      </Button>
-
-                      {isGradeOpen && (
-                        <div className="space-y-1 border-t border-slate-100 p-2 dark:border-slate-800">
-                          {group.sections.map((section) => {
-                            const classroom: ClassroomRef = {
-                              level: levelGroup.level,
-                              grade: group.key,
-                              section: section.key,
-                            };
-                            const isExpanded = isSameClassroom(expandedClassroom, classroom);
-                            return (
-                              <div key={section.key} className="space-y-1">
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  onClick={() => onToggleClassroom(classroom)}
-                                  aria-expanded={isExpanded}
-                                  className={cn(
-                                    'h-10 w-full justify-between gap-2 rounded-lg px-3 text-left',
-                                    isExpanded
-                                      ? 'bg-blue-50 text-blue-700 hover:bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400'
-                                      : 'text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50',
-                                  )}
-                                >
-                                  <span className="flex min-w-0 items-center gap-2">
-                                    {isExpanded ? (
-                                      <ChevronDown size={16} strokeWidth={2} className="shrink-0" />
-                                    ) : (
-                                      <Folder size={16} strokeWidth={2} className="shrink-0" />
-                                    )}
-                                    <span className={cn('truncate text-sm', isExpanded ? 'font-semibold' : 'font-medium')}>
-                                      {section.label}
-                                    </span>
-                                  </span>
-                                  <span
-                                    className={cn(
-                                      'shrink-0 rounded-full px-2 py-0.5 text-xs font-bold',
-                                      isExpanded
-                                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
-                                        : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
-                                    )}
-                                  >
-                                    {section.count}
-                                  </span>
-                                </Button>
-
-                                {isExpanded && (
-                                  <ClassroomRosterPanel
-                                    classroom={classroom}
-                                    selectedStudent={selectedStudent}
-                                    onSelectStudent={(student) => onSelectStudent(classroom, student)}
-                                    isOverviewOpen={isOverviewOpen}
-                                    onOpenOverview={() => onOpenOverview(classroom)}
-                                  />
+                  {isGradeOpen && (
+                    <div className="flex flex-col gap-1 rounded-2xl border border-slate-100 bg-slate-50/60 p-2 dark:border-slate-800 dark:bg-slate-900/40">
+                      {group.sections.map((section) => {
+                        const classroom: ClassroomRef = {
+                          level: levelGroup.level,
+                          grade: group.key,
+                          section: section.key,
+                        };
+                        const isExpanded = isSameClassroom(expandedClassroom, classroom);
+                        return (
+                          <div key={section.key} className="flex flex-col gap-1">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              onClick={() => onToggleClassroom(classroom)}
+                              aria-expanded={isExpanded}
+                              className={cn(
+                                'h-12 w-full justify-between gap-3 rounded-xl px-3 text-left',
+                                isExpanded
+                                  ? 'bg-primary/10 text-primary hover:bg-primary/10'
+                                  : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800/50',
+                              )}
+                            >
+                              <span className="flex min-w-0 items-center gap-3">
+                                {isExpanded ? (
+                                  <ChevronDown size={20} strokeWidth={2} className="shrink-0" />
+                                ) : (
+                                  <ChevronRight size={20} strokeWidth={2} className="shrink-0" />
                                 )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                                <span className={cn('truncate text-sm', isExpanded ? 'font-bold' : 'font-semibold')}>
+                                  {section.label}
+                                </span>
+                              </span>
+                              {/* Contador de alumnos: la silueta lo etiqueta sin
+                                  necesidad de una palabra que no cabe en la pill. */}
+                              <span
+                                className={cn(
+                                  'flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold',
+                                  isExpanded
+                                    ? 'bg-primary/15 text-primary'
+                                    : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
+                                )}
+                                title={`${section.count} estudiantes`}
+                              >
+                                <UserRound size={16} strokeWidth={2} aria-hidden="true" />
+                                {section.count}
+                              </span>
+                            </Button>
+
+                            {isExpanded && (
+                              <ClassroomRosterPanel
+                                classroom={classroom}
+                                selectedStudent={selectedStudent}
+                                onSelectStudent={(student) => onSelectStudent(classroom, student)}
+                                isOverviewOpen={isOverviewOpen}
+                                onOpenOverview={() => onOpenOverview(classroom)}
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+                  )}
+                </div>
+              );
+            })}
+          </ModuleSidebarSection>
         ))}
-      </div>
+      </ModuleSidebarBody>
     </ModuleSidebar>
   );
 };

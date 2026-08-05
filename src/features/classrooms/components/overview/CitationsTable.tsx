@@ -10,7 +10,7 @@ import type { Citation } from '@/features/citations/types';
  * y editan solo allí, aquí solo se consultan.
  */
 export const CitationsTable: React.FC<{ citations: Citation[] }> = ({ citations }) => (
-  <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+  <div className="overflow-x-auto border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
     <table className="w-full min-w-[820px] border-collapse text-left text-sm">
       <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-800/50 dark:text-slate-400">
         <tr>

@@ -96,7 +96,7 @@ export const AttendanceHeatmapCard: React.FC<{
                   type="button"
                   onClick={onDownloadAttendance}
                   aria-label="Descargar asistencia"
-                  className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl bg-blue-600 text-white hover:bg-blue-700 shadow-sm [&_svg]:size-4 sm:[&_svg]:size-5"
+                  className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl shadow-sm [&_svg]:size-4 sm:[&_svg]:size-5"
                 >
                   <Download className="w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
@@ -133,7 +133,7 @@ export const AttendanceHeatmapCard: React.FC<{
                 onClick={() =>
                   canJustify && !record.isWeekend && onDayClick(record)
                 }
-                className={`relative aspect-square rounded-xl ${record.isWeekend ? "bg-slate-50/80 dark:bg-slate-800/50 text-slate-400 font-bold" : record.color} group ${canJustify && !record.isWeekend && (record.originalStatus === "Falta" || record.originalStatus === "Tardanza") ? "cursor-pointer hover:ring-2 hover:ring-blue-400" : "cursor-help"} transition-transform hover:scale-105 flex items-center justify-center`}
+                className={`relative aspect-square rounded-xl ${record.isWeekend ? "bg-slate-50/80 dark:bg-slate-800/50 text-slate-400 font-bold" : record.color} group ${canJustify && !record.isWeekend && (record.originalStatus === "Falta" || record.originalStatus === "Tardanza") ? "cursor-pointer hover:ring-2 hover:ring-primary/40" : "cursor-help"} transition-transform hover:scale-105 flex items-center justify-center`}
               >
                 <span className="text-lg font-bold">
                   {record.dayNumber}

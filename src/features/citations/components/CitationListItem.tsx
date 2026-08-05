@@ -30,7 +30,7 @@ export const CitationListItem: React.FC<{
       className={cn(
         'w-full px-3 py-3 flex gap-3 text-left transition-colors border-b border-l-4 border-slate-100 dark:border-slate-800/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset',
         isSelected
-          ? 'border-l-blue-400 bg-blue-50/80 dark:border-l-blue-500 dark:bg-blue-900/20'
+          ? 'border-l-primary bg-primary/10'
           : 'border-l-transparent bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800/60',
       )}
     >

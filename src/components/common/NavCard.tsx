@@ -59,8 +59,8 @@ export const NavCard: React.FC<NavCardProps> = ({
         disabled
           ? 'cursor-not-allowed border-slate-200 bg-slate-100 opacity-70 dark:border-slate-700/50 dark:bg-slate-800/40'
           : selected
-            ? 'border-blue-400 bg-blue-50/80 ring-1 ring-blue-400/20 hover:bg-blue-50/80 dark:border-blue-500 dark:bg-blue-900/20 dark:hover:bg-blue-900/20'
-            : 'border-slate-100 bg-white hover:border-blue-200 hover:shadow-md dark:border-slate-800 dark:bg-slate-900/40 dark:hover:border-blue-800',
+            ? 'border-primary bg-primary/10 ring-1 ring-primary/20 hover:bg-primary/10'
+            : 'border-slate-100 bg-white hover:border-primary/30 hover:shadow-md dark:border-slate-800 dark:bg-slate-900/40',
         className,
       )}
     >

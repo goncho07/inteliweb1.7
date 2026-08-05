@@ -1,5 +1,6 @@
 import { BookOpen, Briefcase, Tag, Users, type LucideIcon } from 'lucide-react';
 
+import { EDUCATIONAL_STRUCTURE } from '@/data/education';
 import { pseudoRandom } from '@/lib/pseudoRandom';
 
 import type { Citation, CitationCategory, CitationStatus, TimelineStep } from './types';
@@ -61,9 +62,21 @@ export const STATUS_TABS: { label: string; value: CitationStatus | 'Todas' }[] =
 ];
 
 export const LEVEL_OPTIONS = ['Primaria', 'Secundaria'] as const;
-export const GRADE_OPTIONS = ['1°', '2°', '3°', '4°', '5°', '6°'] as const;
-export const SECTION_OPTIONS = ['A', 'B', 'C', 'D'] as const;
 export const CATEGORY_OPTIONS = ['Académico', 'Incidencias', 'Gestión', 'Otros'] as const;
+
+/**
+ * Grados y secciones del filtro, tomados de la estructura educativa de la
+ * institución (`data/education.ts`) en vez de una lista propia: antes el filtro
+ * ofrecía «6°» en Secundaria y solo secciones A–D, aulas que no existen.
+ *
+ * En Citaciones el grado se escribe corto («3° A»), sin la palabra «Grado» que
+ * usa la estructura, así que se recorta aquí — el dato es el mismo.
+ */
+export const gradesForLevel = (level: string): string[] =>
+  Object.keys(EDUCATIONAL_STRUCTURE[level] ?? {}).map((grade) => grade.replace(' Grado', ''));
+
+export const sectionsForGrade = (level: string, grade: string): string[] =>
+  EDUCATIONAL_STRUCTURE[level]?.[`${grade} Grado`] ?? [];
 
 /**
  * Clases de color por estado, coherentes en toda la app y alineadas al mapeo

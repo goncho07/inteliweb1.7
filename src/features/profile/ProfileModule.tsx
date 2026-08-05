@@ -65,7 +65,7 @@ export const ProfileModule: React.FC<ModuleProps> = () => {
         <div className="xl:col-span-4 flex flex-col gap-6 h-max">
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden flex flex-col">
             {/* Header de la tarjeta */}
-            <div className="h-32 bg-gradient-to-r from-blue-600 to-cyan-500 relative">
+            <div className="h-32 bg-gradient-to-r from-blue-600 to-blue-400 relative">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -85,7 +85,7 @@ export const ProfileModule: React.FC<ModuleProps> = () => {
             {/* Avatar y Datos Básicos */}
             <div className="px-6 pb-6 relative flex flex-col items-center text-center">
               <div className="w-24 h-24 rounded-full bg-white dark:bg-slate-900 p-1.5 -mt-12 relative z-10">
-                <div className="w-full h-full rounded-full bg-gradient-to-tr from-blue-600 to-cyan-500 text-white flex items-center justify-center font-bold text-3xl shadow-md">
+                <div className="w-full h-full rounded-full bg-gradient-to-tr from-blue-600 to-blue-400 text-white flex items-center justify-center font-bold text-3xl shadow-md">
                   {initials}
                 </div>
                 <Tooltip>

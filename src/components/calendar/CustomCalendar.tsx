@@ -161,7 +161,7 @@ export const CustomCalendar: React.FC<CustomCalendarProps> = ({ mode, value, onC
         type="button"
         variant="outline"
         onClick={() => setIsOpen(!isOpen)}
-        className="h-[52px] w-full min-w-[200px] justify-between gap-3 overflow-hidden rounded-xl border-2 border-slate-100 bg-white px-5 text-base font-bold text-slate-700 shadow-sm outline-none transition-all hover:border-blue-500/50 hover:bg-blue-50/30 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 sm:w-auto dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-blue-900/10"
+        className="h-[52px] w-full min-w-[200px] justify-between gap-3 overflow-hidden rounded-xl border-2 border-slate-100 bg-white px-5 text-base font-bold text-slate-700 shadow-sm outline-none transition-all hover:border-primary/50 hover:bg-primary/5 focus:border-primary focus:ring-4 focus:ring-primary/10 sm:w-auto dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-primary/10"
       >
         <span className="truncate">{displayValue}</span>
         <CalendarIcon size={18} className="text-slate-400 dark:text-slate-500 shrink-0" />
@@ -268,7 +268,7 @@ export const CustomCalendar: React.FC<CustomCalendarProps> = ({ mode, value, onC
               return (
                 <div key={weekIndex} className="flex items-center group relative origin-left">
                   {mode === 'week' && (
-                    <div className={`w-10 text-center text-xs transition-all ${weekSelected ? 'text-blue-600 font-extrabold scale-110' : 'text-slate-400 font-medium'}`}>
+                    <div className={`w-10 text-center text-xs transition-all ${weekSelected ? 'text-primary font-extrabold scale-110' : 'text-slate-400 font-medium'}`}>
                       {weekNum}
                     </div>
                   )}

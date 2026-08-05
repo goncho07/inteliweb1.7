@@ -57,7 +57,7 @@ export const PersonalIncidentsCard: React.FC<{
                   size="icon"
                   onClick={onDownloadIncidents}
                   aria-label="Descargar incidencias"
-                  className="h-10 w-10 rounded-xl bg-blue-600 text-white hover:bg-blue-700 shadow-sm"
+                  className="h-10 w-10 rounded-xl shadow-sm"
                 >
                   <Download className="w-5 h-5" />
                 </Button>

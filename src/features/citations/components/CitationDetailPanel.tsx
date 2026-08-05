@@ -74,7 +74,7 @@ export const CitationDetailPanel: React.FC<{
             <p className="truncate text-sm text-slate-500 dark:text-slate-400">{citation.parentPhone}</p>
           </div>
         </div>
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+        <div className="flex shrink-0 items-center justify-end gap-2">
           <CitationCategoryBadge category={citation.category} className="px-2.5 py-1 text-sm" />
           <CitationStatusBadge status={citation.status} className="px-3 py-1 text-sm" />
         </div>

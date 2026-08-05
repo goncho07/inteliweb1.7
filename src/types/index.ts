@@ -18,21 +18,42 @@ export interface ClassroomRef {
  */
 export type AppRole = 'directivo' | 'docente' | 'auxiliar' | 'apoderado';
 
+/** Rol de la persona dentro de la institución (no es el rol de acceso: ver `AppRole`). */
+export type UserRole = 'Estudiante' | 'Docente' | 'Administrativo' | 'Apoderado';
+
+/** Situación de la persona. Los estados válidos dependen del rol (ver `STATUS_BY_ROLE`). */
+export type UserStatus =
+  | 'Activo'
+  | 'Inactivo'
+  | 'Suspendido'
+  | 'Matriculado'
+  | 'Retirado'
+  | 'Trasladado'
+  | 'Egresado';
+
 export interface UserItem {
   id: string;
   code?: string;
   name: string;
   dni: string;
-  role: 'Estudiante' | 'Docente' | 'Administrativo' | 'Apoderado';
+  role: UserRole;
   gender: 'M' | 'F';
   level?: 'Inicial' | 'Primaria' | 'Secundaria'; // Campo agregado para filtros
   grade?: string;
   section?: string;
-  status: 'Activo' | 'Inactivo' | 'Suspendido' | 'Matriculado' | 'Retirado' | 'Trasladado' | 'Egresado';
+  status: UserStatus;
   avatarColor: string;
   email: string;
   phone?: string;
   address?: string;
+  /** Fecha de nacimiento en ISO (`AAAA-MM-DD`), el formato que espera `<input type="date">`. */
+  birthDate?: string;
+  /** Solo Estudiante: código modular del SIAGIE (14 dígitos). */
+  modularCode?: string;
+  /** Solo Docente: curso principal que dicta. */
+  subject?: string;
+  /** Solo Administrativo: cargo dentro de la institución. */
+  position?: string;
   /** Qué ve al entrar. Ausente = sin acceso al sistema (estudiantes). */
   appRole?: AppRole;
   /** Solo Docente: aulas a su cargo. La primera es la que tutorea. */
