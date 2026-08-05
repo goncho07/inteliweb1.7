@@ -21,6 +21,7 @@ ds-bundle/
 # Documentación, agentes y planificación local — no se versiona
 CLAUDE.md
 DESIGN_SYSTEM.md
+README.md
 docs/
 .claude/agents/
 migrated_prompt_history/
