@@ -16,9 +16,14 @@ dist-ssr
 # design-sync (Claude Design) — estado generado, no se versiona
 .ds-sync/
 ds-bundle/
-.design-sync/.cache/
-.design-sync/learnings/
-.design-sync/node_modules
+.design-sync/
+
+# Documentación, agentes y planificación local — no se versiona
+CLAUDE.md
+DESIGN_SYSTEM.md
+docs/
+.claude/agents/
+migrated_prompt_history/
 
 # Variables de entorno (contienen claves de API)
 .env
