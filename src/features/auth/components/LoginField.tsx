@@ -108,7 +108,7 @@ export const LoginField: React.FC<{
                 // El `ghost` de shadcn pinta el fondo con `accent`, que aquí es
                 // el azul institucional: dentro del campo se veía como un
                 // cuadrado azul sólido. Se le da un realce propio, discreto.
-                className="absolute right-2 top-1/2 h-10 w-10 -translate-y-1/2 rounded-md text-slate-400 transition-none hover:bg-slate-100 hover:text-slate-600 focus-visible:ring-offset-0 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+                className="absolute right-2 top-1/2 h-10 w-10 -translate-y-1/2 rounded-md text-slate-400 transition-none hover:bg-slate-100 hover:text-slate-600 focus-visible:ring-offset-0 active:scale-100 dark:hover:bg-slate-800 dark:hover:text-slate-300"
               >
                 {revealed ? <EyeOff size={18} strokeWidth={2} /> : <Eye size={18} strokeWidth={2} />}
               </Button>

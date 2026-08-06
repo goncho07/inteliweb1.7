@@ -12,6 +12,7 @@ import {
   LOGIN_PRIMARY_BUTTON,
   LOGIN_SECONDARY_BUTTON,
 } from '@/features/auth/login-ui';
+import { cn } from '@/lib/utils';
 import type { UserItem } from '@/types';
 
 /**
@@ -108,7 +109,7 @@ export const StaffLoginForm: React.FC<{
           />
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Checkbox
               id={rememberId}
@@ -118,13 +119,18 @@ export const StaffLoginForm: React.FC<{
             />
             <label
               htmlFor={rememberId}
-              className="cursor-pointer text-base font-medium text-slate-700 dark:text-slate-300"
+              className="cursor-pointer text-sm font-medium text-slate-700 dark:text-slate-300"
             >
               Mantener sesión iniciada
             </label>
           </div>
 
-          <Button type="button" variant="link" onClick={onForgotPassword} className={LOGIN_LINK_BUTTON}>
+          <Button
+            type="button"
+            variant="link"
+            onClick={onForgotPassword}
+            className={cn(LOGIN_LINK_BUTTON, 'shrink-0')}
+          >
             ¿Olvidó su contraseña?
           </Button>
         </div>

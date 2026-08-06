@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { HeartHandshake, School } from 'lucide-react';
 import { EmptyState } from '@/components/common/EmptyState';
 import { ModulePane, ModuleShell } from '@/components/layout/ModuleShell';
@@ -8,7 +8,7 @@ import { ClassroomSidebar } from '@/features/classrooms/components/ClassroomSide
 import { ClassroomTodayOverview } from '@/features/classrooms/components/ClassroomTodayOverview';
 import { StudentDetail } from '@/features/classrooms/components/StudentDetail';
 import { useClassroomsNavigation } from '@/features/classrooms/hooks/useClassroomsNavigation';
-import { ModuleProps } from '@/types';
+import { ModuleProps, UserItem } from '@/types';
 
 /**
  * Módulo Aulas: un solo camino de navegación (`useClassroomsNavigation`, ver
@@ -21,7 +21,8 @@ import { ModuleProps } from '@/types';
  * no se abre desde aquí.
  *
  * El apoderado no navega: entra directo al perfil de su hijo, sin sidebar
- * (`session.children[0]`, resuelto por `buildSession`).
+ * (`session.children`, resuelto por `buildSession`). Si tiene más de uno
+ * vinculado, `GuardianClassroomsView` (abajo) ofrece un selector.
  */
 export const ClassroomsModule: React.FC<ModuleProps> = ({ globalDate }) => {
   const session = useSession();
@@ -41,24 +42,7 @@ export const ClassroomsModule: React.FC<ModuleProps> = ({ globalDate }) => {
   }, [classroom]);
 
   if (session.role === 'apoderado') {
-    const child = session.children[0];
-    return (
-      <ModuleShell>
-        <ModulePane>
-          {child ? (
-            // Sin `onBack`: el apoderado entra directo al perfil de su hijo,
-            // no hay lista detrás a la que volver.
-            <StudentDetail student={child} isParentView />
-          ) : (
-            <EmptyState
-              icon={HeartHandshake}
-              title="Sin estudiante vinculado"
-              description="No encontramos un estudiante vinculado a su cuenta. Comuníquese con Dirección para regularizar el vínculo con su hijo."
-            />
-          )}
-        </ModulePane>
-      </ModuleShell>
-    );
+    return <GuardianClassroomsView children={session.children} />;
   }
 
   return (
@@ -94,12 +78,52 @@ export const ClassroomsModule: React.FC<ModuleProps> = ({ globalDate }) => {
 
       {view.kind === 'student-detail' && (
         <ModulePane>
+          {/* `key`: al elegir otro alumno del mismo aula el componente se
+              vuelve a montar en vez de arrastrar el mes, la página de
+              incidencias o una justificación a medio llenar del alumno
+              anterior. */}
           <StudentDetail
+            key={view.student.id}
             student={view.student}
             onBack={() => goToSectionOverview(view.classroom)}
           />
         </ModulePane>
       )}
+    </ModuleShell>
+  );
+};
+
+/**
+ * Vista del apoderado: sin sidebar, entra directo al perfil de su hijo. Si
+ * tiene más de uno vinculado (`session.children`), elige cuál ver desde el
+ * propio selector de `StudentDetail` — la sesión no vuelve a preguntar en
+ * cada visita, el primero se muestra por defecto.
+ */
+const GuardianClassroomsView: React.FC<{ children: UserItem[] }> = ({ children }) => {
+  const [selectedId, setSelectedId] = useState(children[0]?.id);
+  const child = children.find((c) => c.id === selectedId) ?? children[0];
+
+  return (
+    <ModuleShell>
+      <ModulePane>
+        {child ? (
+          // Sin `onBack`: el apoderado entra directo al perfil de su hijo,
+          // no hay lista detrás a la que volver.
+          <StudentDetail
+            key={child.id}
+            student={child}
+            isParentView
+            allChildren={children}
+            onSelectChild={(next) => setSelectedId(next.id)}
+          />
+        ) : (
+          <EmptyState
+            icon={HeartHandshake}
+            title="Sin estudiante vinculado"
+            description="No encontramos un estudiante vinculado a su cuenta. Comuníquese con Dirección para regularizar el vínculo con su hijo."
+          />
+        )}
+      </ModulePane>
     </ModuleShell>
   );
 };

@@ -22,4 +22,4 @@ export const LOGIN_GHOST_BUTTON =
   'h-12 gap-2 rounded-md px-4 text-xl font-semibold [&_svg]:size-5';
 
 /** Enlace en línea (`variant="link"`), sin alto propio. */
-export const LOGIN_LINK_BUTTON = 'h-auto p-0 text-lg font-semibold';
+export const LOGIN_LINK_BUTTON = 'h-auto p-0 text-sm font-semibold';

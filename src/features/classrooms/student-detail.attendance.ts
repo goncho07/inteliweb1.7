@@ -1,7 +1,12 @@
-import { AlertTriangle, Clock, type LucideIcon } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
-import { INCIDENT_TYPES } from '@/data/education';
-import { formatShortDate } from '@/features/classrooms/overview.rows';
+import { formatShortPersonName } from '@/features/classrooms/overview.format';
+import { getMonthRange } from '@/features/classrooms/overview.period';
+import {
+  buildIncidentReportRows,
+  buildSchoolDays,
+  type OverviewStudent,
+} from '@/features/classrooms/overview.rows';
 import type {
   AttendanceCalendarDay,
   AttendanceStatus,
@@ -61,6 +66,47 @@ export const ATTENDANCE_STATUS_STYLES: Record<AttendanceStatus, AttendanceStatus
 
 /** Orden de la leyenda del calendario: del mejor al peor estado, y al final el resuelto. */
 export const ATTENDANCE_LEGEND: AttendanceStatus[] = ['Presente', 'Tardanza', 'Falta', 'Justificada'];
+
+/* -------------------------------------------------------------------------
+ * Hora de entrada y salida de un día
+ * ---------------------------------------------------------------------- */
+
+/** Hora límite de entrada: a partir de aquí el registro pasa a Tardanza. */
+export const ATTENDANCE_ENTRY_LIMIT = '08:00';
+/** Hora de entrada registrada cuando el día es Tardanza (fija, igual que en el historial de incidencias). */
+const LATE_ENTRY_TIME = '08:15';
+/** Hora de salida del colegio, la misma todos los días lectivos. */
+export const ATTENDANCE_EXIT_TIME = '15:30';
+
+export interface AttendanceDayTimes {
+  /** `null` cuando el estudiante no asistió ese día (Falta sin justificar entrada). */
+  entryTime: string | null;
+  exitTime: string | null;
+}
+
+/** Hora de entrada estable antes del límite (7:30-7:59), para un día Presente. */
+const onTimeEntry = (studentName: string, isoDate: string): string => {
+  const minute = 30 + Math.floor(pseudoRandom(`${studentName}-entrada-${isoDate}`) * 30);
+  return `07:${String(minute).padStart(2, '0')}`;
+};
+
+/**
+ * Hora de entrada y salida de un día del calendario, a partir de su estado
+ * registrado (`originalStatus`, no el estado ya justificado): un día
+ * justificado sigue mostrando la hora real con la que se marcó tardanza, o
+ * ninguna hora si fue una falta.
+ */
+export const getAttendanceDayTimes = (
+  studentName: string,
+  day: AttendanceCalendarDay,
+): AttendanceDayTimes => {
+  if (day.isWeekend || day.originalStatus === 'Falta') return { entryTime: null, exitTime: null };
+  if (day.originalStatus === 'Tardanza') return { entryTime: LATE_ENTRY_TIME, exitTime: ATTENDANCE_EXIT_TIME };
+  if (day.originalStatus === 'Presente') {
+    return { entryTime: onTimeEntry(studentName, day.date), exitTime: ATTENDANCE_EXIT_TIME };
+  }
+  return { entryTime: null, exitTime: null };
+};
 
 /** Traducción de la intención de color de una incidencia a clases de Tailwind. */
 export const INCIDENT_TONE_STYLES: Record<IncidentTone, string> = {
@@ -152,79 +198,48 @@ export const buildAttendanceMonth = (
  * Historial de incidencias del mes
  * ---------------------------------------------------------------------- */
 
-/** Faltas y tardanzas del mes, convertidas en entradas del historial. */
-const attendanceEntries = (days: (AttendanceCalendarDay | null)[]): PersonalIncidentEntry[] =>
-  days
-    .filter(
-      (day): day is AttendanceCalendarDay =>
-        day !== null && (day.originalStatus === 'Falta' || day.originalStatus === 'Tardanza'),
-    )
-    .map((day) => {
-      const isFalta = day.originalStatus === 'Falta';
-      const isJustified = day.status === 'Justificada';
-
-      return {
-        id: `att-in-${day.date}`,
-        date: day.date,
-        dateLabel: formatShortDate(new Date(`${day.date}T00:00:00`)),
-        time: isFalta ? '08:00' : '08:15',
-        teacher: null,
-        label: isFalta ? 'Inasistencia' : 'Tardanza',
-        category: isFalta ? 'Grave' : 'Leve',
-        icon: (isFalta ? AlertTriangle : Clock) as LucideIcon,
-        tone: isJustified ? 'info' : isFalta ? 'danger' : 'warning',
-        description: isJustified
-          ? `Justificada por el docente: ${day.justification || 'sin observación'}.`
-          : `Registro de ${day.originalStatus.toLowerCase()} en el sistema de asistencia.`,
-      } satisfies PersonalIncidentEntry;
-    });
-
-/** Constancias con las que un docente cierra el registro de una incidencia. */
-const INCIDENT_NOTES = [
-  'Se dejó constancia del hecho en el cuaderno de incidencias del aula.',
-  'El docente conversó con el estudiante y registró lo ocurrido.',
-  'Se comunicó lo ocurrido al apoderado por el canal habitual.',
-];
-
-/** Incidencias de conducta simuladas del mes: tipo, día y hora estables por alumno. */
-const behaviourEntries = (studentName: string, cursor: Date): PersonalIncidentEntry[] => {
-  const year = cursor.getFullYear();
-  const month = cursor.getMonth();
-  const lastDay = new Date(year, month + 1, 0).getDate();
-  const teachers = ['Prof. María Gómez', 'Prof. Carlos Ruiz', 'Prof. Juan Vargas'];
-  const times = ['08:15', '10:30', '12:00'];
-
-  return teachers.map((teacher, index) => {
-    const seed = `${studentName}-incidencia-${year}-${month}-${index}`;
-    const dayNumber = 1 + Math.floor(pseudoRandom(`${seed}-dia`) * lastDay);
-    const type = INCIDENT_TYPES[Math.floor(pseudoRandom(`${seed}-tipo`) * INCIDENT_TYPES.length)];
-    const date = toIsoDate(new Date(year, month, dayNumber));
-
-    return {
-      id: `inc-${date}-${index}`,
-      date,
-      dateLabel: formatShortDate(new Date(year, month, dayNumber)),
-      time: times[index],
-      teacher,
-      label: type.label,
-      category: type.category,
-      icon: type.icon as LucideIcon,
-      tone: type.category === 'Grave' ? 'danger' : type.category === 'Moderada' ? 'warning' : 'neutral',
-      description: INCIDENT_NOTES[Math.floor(pseudoRandom(`${seed}-nota`) * INCIDENT_NOTES.length)],
-    } satisfies PersonalIncidentEntry;
-  });
-};
+/** Datos del alumno que necesita el generador de incidencias: el mismo alumno que filtra la Vista General del Aula. */
+export interface StudentForIncidents extends OverviewStudent {
+  level: string;
+  grade: string;
+  section: string;
+}
 
 /**
- * Historial del mes: incidencias de conducta + faltas y tardanzas, de la más
- * reciente a la más antigua — el orden en el que un docente busca "qué pasó
- * últimamente".
+ * Historial de incidencias de conducta del mes, para un solo alumno.
+ *
+ * Reutiliza `buildIncidentReportRows` — el mismo generador que arma la
+ * pestaña Incidencias de la Vista General del Aula — con la semilla del aula
+ * del alumno (`nivel-grado-sección`), así que un mismo día y una misma
+ * incidencia se ven igual desde el aula y desde el perfil del alumno; no se
+ * inventa un catálogo de incidencias aparte. Las faltas y tardanzas no son
+ * incidencias — su propio registro vive en la tarjeta de Asistencia.
  */
-export const buildPersonalIncidents = (
-  studentName: string,
-  cursor: Date,
-  days: (AttendanceCalendarDay | null)[],
-): PersonalIncidentEntry[] =>
-  [...behaviourEntries(studentName, cursor), ...attendanceEntries(days)].sort((a, b) =>
-    b.date.localeCompare(a.date),
-  );
+export const buildPersonalIncidents = (student: StudentForIncidents, cursor: Date): PersonalIncidentEntry[] => {
+  const { start, end } = getMonthRange(cursor);
+  const schoolDays = buildSchoolDays(start, end);
+  const aulaSeed = `${student.level}-${student.grade}-${student.section}`;
+  // Sin corte de "hoy": a diferencia de la Vista General del Aula, el perfil
+  // del alumno navega libremente cualquier mes del año escolar, incluidos
+  // los que ya pasaron por completo.
+  const today = end;
+
+  return buildIncidentReportRows(aulaSeed, [student], schoolDays, today)
+    .map(
+      (row): PersonalIncidentEntry => ({
+        id: row.id,
+        date: toIsoDate(row.date),
+        dateLabel: row.dateLabel,
+        time: row.timeLabel,
+        // Nombre corto (primer apellido + nombre, con "Prof."): la ficha del
+        // alumno no necesita el nombre completo del docente para identificarlo.
+        teacher: `Prof. ${formatShortPersonName(row.teacherName)}`,
+        label: row.type.label,
+        category: row.type.category,
+        icon: row.type.icon as LucideIcon,
+        tone: row.type.category === 'Grave' ? 'danger' : row.type.category === 'Moderada' ? 'warning' : 'neutral',
+        description: row.description,
+      }),
+    )
+    .sort((a, b) => b.date.localeCompare(a.date));
+};

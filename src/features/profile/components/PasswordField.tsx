@@ -42,7 +42,7 @@ export const PasswordField: React.FC<{
               size="icon"
               onClick={() => setVisible((prev) => !prev)}
               aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-              className="absolute right-1 top-1/2 h-10 w-10 -translate-y-1/2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+              className="absolute right-1 top-1/2 h-10 w-10 -translate-y-1/2 rounded-lg text-slate-400 transition-none hover:text-slate-600 active:scale-100 dark:hover:text-slate-300"
             >
               {visible ? <EyeOff size={20} /> : <Eye size={20} />}
             </Button>

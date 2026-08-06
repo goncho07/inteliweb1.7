@@ -25,3 +25,14 @@ export const formatStudentDisplayName = (name: string): string => {
   if (lastNames.length === 0) return firstName;
   return `${lastNames.join(' ')}, ${firstName}`;
 };
+
+/**
+ * Formatea "Nombre Apellido1 Apellido2" como "Apellido1 Nombre" — solo el
+ * primer apellido, para etiquetas cortas donde no cabe el nombre completo del
+ * docente (ej. el historial de incidencias del perfil del alumno).
+ */
+export const formatShortPersonName = (name: string): string => {
+  const [firstName, firstLastName] = name.split(' ');
+  if (!firstLastName) return firstName;
+  return `${firstLastName} ${firstName}`;
+};

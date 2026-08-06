@@ -1,9 +1,15 @@
 import React, { useMemo, useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Check, ChevronDown } from 'lucide-react';
 
 import { StudentAvatar } from '@/components/common/StudentAvatar';
 import { ModuleBody, ModulePaneHeader } from '@/components/layout/ModuleShell';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AttendanceHeatmapCard } from '@/features/classrooms/components/student-detail/AttendanceHeatmapCard';
 import { JustifyAbsenceModal } from '@/features/classrooms/components/student-detail/JustifyAbsenceModal';
@@ -17,10 +23,8 @@ import {
 import type { AttendanceCalendarDay } from '@/features/classrooms/types';
 import { downloadStudentReport } from '@/features/classrooms/utils';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 import { UserItem } from '@/types';
-
-/** Incidencias por página del historial: tres caben sin obligar a hacer scroll dentro de la tarjeta. */
-const INCIDENTS_PER_PAGE = 3;
 
 /**
  * Perfil de un estudiante: su asistencia del mes y el historial de incidencias
@@ -39,12 +43,16 @@ export const StudentDetail: React.FC<{
    */
   onBack?: () => void;
   isParentView?: boolean;
-}> = ({ student, onBack, isParentView }) => {
+  /** Todos los hijos del apoderado, para alternar entre ellos si tiene más de uno. Solo en la vista de apoderado. */
+  allChildren?: UserItem[];
+  onSelectChild?: (child: UserItem) => void;
+}> = ({ student, onBack, isParentView, allChildren, onSelectChild }) => {
   const { toast } = useToast();
+
+  const hasMultipleChildren = isParentView && (allChildren?.length ?? 0) > 1;
 
   const [cursor, setCursor] = useState<Date>(() => clampToSchoolYear(new Date()));
   const [justifiedDays, setJustifiedDays] = useState<Record<string, string>>({});
-  const [incidentsPage, setIncidentsPage] = useState(1);
 
   const [dayToJustify, setDayToJustify] = useState<AttendanceCalendarDay | null>(null);
   const [justificationObservation, setJustificationObservation] = useState('');
@@ -56,25 +64,19 @@ export const StudentDetail: React.FC<{
   );
 
   const personalIncidents = useMemo(
-    () => buildPersonalIncidents(student.name, cursor, calendarData),
-    [student.name, cursor, calendarData],
+    () =>
+      buildPersonalIncidents(
+        {
+          id: student.id,
+          name: student.name,
+          level: student.level ?? '',
+          grade: student.grade ?? '',
+          section: student.section ?? '',
+        },
+        cursor,
+      ),
+    [student.id, student.name, student.level, student.grade, student.section, cursor],
   );
-
-  const totalIncidentPages = Math.max(1, Math.ceil(personalIncidents.length / INCIDENTS_PER_PAGE));
-
-  // Al cambiar de mes se vuelve a la primera página. Se ajusta durante el
-  // render (patrón recomendado por React) en lugar de con un efecto, que
-  // provocaría un render intermedio con la página anterior.
-  const [prevCursor, setPrevCursor] = useState(cursor);
-  if (prevCursor !== cursor) {
-    setPrevCursor(cursor);
-    setIncidentsPage(1);
-  }
-
-  const paginatedIncidents = useMemo(() => {
-    const start = (incidentsPage - 1) * INCIDENTS_PER_PAGE;
-    return personalIncidents.slice(start, start + INCIDENTS_PER_PAGE);
-  }, [personalIncidents, incidentsPage]);
 
   const handleConfirmJustification = () => {
     if (!dayToJustify) return;
@@ -132,17 +134,96 @@ export const StudentDetail: React.FC<{
           )}
           {/* Icono gris por defecto (`StudentAvatar`), salvo que el centro haya
               subido una foto real desde la ficha del alumno en Usuarios. */}
-          <StudentAvatar
-            className="h-11 w-11 rounded-full"
-            photoUrl={student.photoUrl}
-            name={student.name}
-          />
-          <div className="min-w-0">
-            <p className="truncate text-lg font-bold text-slate-800 dark:text-white">{student.name}</p>
-            <p className="truncate text-sm text-slate-500 dark:text-slate-400">
-              {`${student.grade.replace('° Grado', '°')} ${student.section} • DNI ${student.dni}`}
-            </p>
-          </div>
+          {hasMultipleChildren && allChildren ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={`Cambiar de hijo. Viendo a ${student.name}.`}
+                  className="-mx-2 -my-1 flex min-w-0 items-center gap-3 rounded-xl px-2 py-1 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:hover:bg-slate-800/60"
+                >
+                  <StudentAvatar
+                    className="h-11 w-11 rounded-full"
+                    photoUrl={student.photoUrl}
+                    name={student.name}
+                  />
+                  <div className="min-w-0 text-left">
+                    <p className="flex items-center gap-1 truncate text-lg font-bold text-slate-800 dark:text-white">
+                      <span className="truncate">{student.name}</span>
+                      <ChevronDown size={16} strokeWidth={2} className="shrink-0 text-slate-400" />
+                    </p>
+                    <p className="truncate text-sm text-slate-500 dark:text-slate-400">
+                      {`${student.grade.replace('° Grado', '°')} ${student.section} • DNI ${student.dni}`}
+                    </p>
+                  </div>
+                </button>
+              </DropdownMenuTrigger>
+              {/* `onOpenAutoFocus`: Radix enfoca el primer ítem al abrir, y ese
+                  foco pinta el fondo sólido (`focus:bg-accent`) igual que un
+                  hover real — como el hijo activo suele ser el primero de la
+                  lista, el menú se abría mostrándolo como si el cursor
+                  estuviera encima todo el tiempo. Se evita ese foco
+                  automático; el ítem activo se marca solo con el tinte suave
+                  + el check, sin necesidad de foco. */}
+              <DropdownMenuContent
+                align="start"
+                className="w-72 rounded-xl"
+                onOpenAutoFocus={(event) => event.preventDefault()}
+              >
+                {allChildren.map((child) => {
+                  const isActive = child.id === student.id;
+                  return (
+                    <DropdownMenuItem
+                      key={child.id}
+                      onClick={() => onSelectChild?.(child)}
+                      // Se anula el hover sólido por defecto del menú
+                      // (`focus:bg-accent`, azul institucional a pantalla
+                      // completa): con avatar + dos líneas de texto dentro,
+                      // pintar todo el ítem de azul sólido tapaba el nombre.
+                      // Un tinte suave es suficiente para marcar "encima" u
+                      // "hijo actual" sin perder la lectura.
+                      className={cn(
+                        'h-auto cursor-pointer gap-3 rounded-lg py-2 focus:bg-slate-100 focus:text-inherit dark:focus:bg-slate-800/60',
+                        isActive && 'bg-primary/10 focus:bg-primary/15',
+                      )}
+                    >
+                      <StudentAvatar
+                        className="h-9 w-9 shrink-0 rounded-full"
+                        photoUrl={child.photoUrl}
+                        name={child.name}
+                      />
+                      <div className="min-w-0 flex-1 text-left">
+                        <p className="truncate text-sm font-semibold text-slate-800 dark:text-white">
+                          {child.name}
+                        </p>
+                        <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                          {`${child.grade.replace('° Grado', '°')} ${child.section}`}
+                        </p>
+                      </div>
+                      {isActive && (
+                        <Check size={18} strokeWidth={2.5} className="shrink-0 text-primary" aria-hidden />
+                      )}
+                      <span className="sr-only">{isActive ? '(hijo actual)' : ''}</span>
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <>
+              <StudentAvatar
+                className="h-11 w-11 rounded-full"
+                photoUrl={student.photoUrl}
+                name={student.name}
+              />
+              <div className="min-w-0">
+                <p className="truncate text-lg font-bold text-slate-800 dark:text-white">{student.name}</p>
+                <p className="truncate text-sm text-slate-500 dark:text-slate-400">
+                  {`${student.grade.replace('° Grado', '°')} ${student.section} • DNI ${student.dni}`}
+                </p>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Único selector de mes de la ficha: gobierna a la vez el calendario
@@ -151,7 +232,6 @@ export const StudentDetail: React.FC<{
         <MonthNavigator
           cursor={cursor}
           onStep={(direction) => setCursor((prev) => stepMonth(prev, direction))}
-          onJump={(month) => setCursor(clampToSchoolYear(month))}
         />
       </ModulePaneHeader>
 
@@ -165,10 +245,21 @@ export const StudentDetail: React.FC<{
             gris muerta bajo las tarjetas en cuanto sobraba alto. */}
         {/* `minmax(0,1fr)` en las dos columnas, no `grid-cols-2`: con `1fr` a
             secas una columna con contenido ancho (el calendario) empuja a la
-            otra y el borde divisorio deja de caer en la mitad exacta. */}
-        <div className="mx-auto grid min-h-full w-full max-w-[1700px] grid-cols-1 2xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            otra y el borde divisorio deja de caer en la mitad exacta.
+            El apoderado no tiene `ClassroomSidebar` a la izquierda —entra
+            directo aquí—, así que su panel ya ocupa todo el ancho sobrante
+            del riel de navegación: capar a 1700px dejaba un margen muerto a
+            los lados que crecía según el riel estuviera compacto o expandido.
+            El resto de vistas sí conserva el límite, como el resto de la app. */}
+        <div
+          className={cn(
+            'mx-auto grid min-h-full w-full grid-cols-1 2xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]',
+            !isParentView && 'max-w-[1700px]',
+          )}
+        >
           <AttendanceHeatmapCard
             className="border-b border-slate-200 dark:border-slate-800/60 2xl:border-b-0 2xl:border-r"
+            studentName={student.name}
             calendarData={calendarData}
             onDownloadAttendance={() => handleDownload('Asistencia')}
             onDayClick={(day) => {
@@ -181,12 +272,7 @@ export const StudentDetail: React.FC<{
 
           <PersonalIncidentsCard
             className="border-b border-slate-200 dark:border-slate-800/60"
-            paginatedIncidents={paginatedIncidents}
-            hasIncidents={personalIncidents.length > 0}
-            incidentsPage={incidentsPage}
-            totalIncidentPages={totalIncidentPages}
-            onPrevPage={() => setIncidentsPage((page) => Math.max(1, page - 1))}
-            onNextPage={() => setIncidentsPage((page) => Math.min(totalIncidentPages, page + 1))}
+            incidents={personalIncidents}
             onDownloadIncidents={() => handleDownload('Incidencias')}
           />
         </div>

@@ -36,7 +36,11 @@ export const DEMO_ACCOUNTS: DemoAccount[] = (['directivo', 'docente', 'auxiliar'
   })
   .filter((entry): entry is DemoAccount => !!entry);
 
-/** Apoderado de ejemplo con al menos un hijo vinculado, para el flujo "Vista Apoderado". */
-export const DEMO_GUARDIAN = MOCK_USERS.find(
-  (u) => u.appRole === 'apoderado' && (u.childrenIds?.length ?? 0) > 0,
-);
+/**
+ * Apoderado de ejemplo con al menos un hijo vinculado, para el flujo "Vista
+ * Apoderado". Se prefiere uno con dos hijos para poder probar el selector de
+ * hijo sin buscarlo manualmente entre las cuentas simuladas.
+ */
+export const DEMO_GUARDIAN =
+  MOCK_USERS.find((u) => u.appRole === 'apoderado' && (u.childrenIds?.length ?? 0) > 1) ??
+  MOCK_USERS.find((u) => u.appRole === 'apoderado' && (u.childrenIds?.length ?? 0) > 0);

@@ -70,6 +70,7 @@ export interface PersonalIncidentEntry {
   /** Fecha ya legible, "DD/MM/YYYY" — el mismo formato que en Citaciones. */
   dateLabel: string;
   time: string;
+  /** Docente que registró la incidencia, ya en formato corto "Prof. Apellido Nombre". */
   teacher: string | null;
   label: string;
   category: IncidentType['category'];

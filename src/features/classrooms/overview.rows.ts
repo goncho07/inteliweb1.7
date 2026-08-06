@@ -275,7 +275,7 @@ export const buildIncidentReportRows = (
       // Ni días futuros ni vacaciones: sin clases no hay incidencia que registrar.
       if (day.date > today || !getSchoolTerm(day.date)) return;
       const chance = pseudoRandom(`${seed}-incidencia-chance-${student.id}-${day.date.toISOString()}`);
-      if (chance > 0.05) return;
+      if (chance > 0.14) return;
       const type = pick(INCIDENT_TYPES, `${seed}-incidencia-tipo-${student.id}-${day.date.toISOString()}`);
       rows.push({
         id: `${student.id}-${day.date.toISOString()}`,

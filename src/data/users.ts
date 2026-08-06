@@ -205,9 +205,10 @@ const assignTeacherClassrooms = (users: UserItem[]): void => {
 };
 
 /**
- * Asigna a cada apoderado exactamente un hijo entre los estudiantes
- * matriculados (semilla `apoderado-${id}-hijo`) y escribe el vínculo
- * recíproco en el alumno.
+ * Asigna a cada apoderado uno o más hijos entre los estudiantes matriculados
+ * (semilla `apoderado-${id}-hijo-N`) y escribe el vínculo recíproco en cada
+ * alumno. 1 de cada 5 apoderados (semilla `apoderado-${id}-hijos-count`) tiene
+ * dos hijos, para poder probar el selector de hijo en la vista de apoderado.
  */
 const linkGuardians = (users: UserItem[]): void => {
   const guardians = users.filter((u) => u.role === 'Apoderado');
@@ -215,9 +216,17 @@ const linkGuardians = (users: UserItem[]): void => {
 
   guardians.forEach((guardian) => {
     if (enrolledStudents.length === 0) return;
-    const child = pickSeeded(enrolledStudents, `apoderado-${guardian.id}-hijo`);
-    guardian.childrenIds = [child.id];
-    child.guardianIds = [...(child.guardianIds ?? []), guardian.id];
+    const childrenCount = pseudoRandom(`apoderado-${guardian.id}-hijos-count`) < 0.2 ? 2 : 1;
+    const children: UserItem[] = [];
+    for (let i = 0; i < childrenCount; i++) {
+      const pool = enrolledStudents.filter((s) => !children.some((c) => c.id === s.id));
+      if (pool.length === 0) break;
+      children.push(pickSeeded(pool, `apoderado-${guardian.id}-hijo-${i}`));
+    }
+    guardian.childrenIds = children.map((c) => c.id);
+    children.forEach((child) => {
+      child.guardianIds = [...(child.guardianIds ?? []), guardian.id];
+    });
   });
 };
 

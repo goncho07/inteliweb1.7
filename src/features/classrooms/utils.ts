@@ -197,9 +197,7 @@ export const downloadStudentReport = ({
       inc.time,
       `${inc.label} (${inc.category})`,
       inc.description,
-      // Las faltas y tardanzas no las registra un docente: las genera el
-      // sistema de asistencia, y así se deja constancia en el reporte.
-      inc.teacher || "Sistema de asistencia",
+      inc.teacher ?? "",
     ]);
 
     autoTable(doc, {

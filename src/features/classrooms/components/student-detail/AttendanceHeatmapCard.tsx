@@ -1,11 +1,12 @@
 import React from 'react';
-import { CalendarCheck, Download, ShieldCheck } from 'lucide-react';
+import { CalendarCheck, Download, LogIn, LogOut, ShieldCheck } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   ATTENDANCE_LEGEND,
   ATTENDANCE_STATUS_STYLES,
+  getAttendanceDayTimes,
 } from '@/features/classrooms/student-detail.attendance';
 import { type AttendanceCalendarDay, isJustifiable } from '@/features/classrooms/types';
 import { cn } from '@/lib/utils';
@@ -30,14 +31,14 @@ const WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
  * Incidencias a la vez— y la leyenda va en el pie.
  */
 export const AttendanceHeatmapCard: React.FC<{
+  studentName: string;
   calendarData: (AttendanceCalendarDay | null)[];
   onDownloadAttendance: () => void;
   onDayClick: (record: AttendanceCalendarDay) => void;
   /** Justificar una falta/tardanza es una acción del docente: el apoderado solo consulta. */
   canJustify?: boolean;
   className?: string;
-}> = ({ className, calendarData, onDownloadAttendance, onDayClick, canJustify = true }) => (
-  <TooltipProvider delayDuration={200}>
+}> = ({ className, studentName, calendarData, onDownloadAttendance, onDayClick, canJustify = true }) => (
     <DetailCard
       className={className}
       icon={CalendarCheck}
@@ -71,12 +72,12 @@ export const AttendanceHeatmapCard: React.FC<{
             ))}
           </div>
 
-          {canJustify && (
-            <p className="flex items-center justify-center gap-2 text-center text-sm text-slate-500 dark:text-slate-400">
-              <ShieldCheck size={16} strokeWidth={2} className="shrink-0" />
-              Pulsa un día marcado con el escudo para justificar la falta o la tardanza.
-            </p>
-          )}
+          <p className="flex items-center justify-center gap-2 text-center text-sm text-slate-500 dark:text-slate-400">
+            <ShieldCheck size={16} strokeWidth={2} className="shrink-0" />
+            {canJustify
+              ? 'Pulsa un día para ver la hora de entrada y salida, o justificar la falta o la tardanza.'
+              : 'Pulsa un día para ver la hora de entrada y salida.'}
+          </p>
         </div>
       }
     >
@@ -111,23 +112,24 @@ export const AttendanceHeatmapCard: React.FC<{
               : style.cell,
           );
 
-          if (!canJustify || !isJustifiable(record)) {
+          if (record.isWeekend) {
             return (
               <div key={record.date} className={cellClasses}>
                 <span>{record.dayNumber}</span>
-                <span className="sr-only">
-                  {record.isWeekend ? 'Fin de semana' : record.status}
-                </span>
+                <span className="sr-only">Fin de semana</span>
               </div>
             );
           }
 
+          const canJustifyThisDay = canJustify && isJustifiable(record);
+          const { entryTime, exitTime } = getAttendanceDayTimes(studentName, record);
+
           return (
-            <Tooltip key={record.date}>
-              <TooltipTrigger asChild>
+            <Popover key={record.date}>
+              <PopoverTrigger asChild>
                 <button
                   type="button"
-                  onClick={() => onDayClick(record)}
+                  aria-label={`${record.status} el ${record.dayNumber}. Ver hora de entrada y salida.`}
                   className={cn(
                     cellClasses,
                     'transition-shadow hover:ring-2 hover:ring-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900',
@@ -135,20 +137,55 @@ export const AttendanceHeatmapCard: React.FC<{
                 >
                   <span>{record.dayNumber}</span>
                   {/* Marca siempre visible: este día se puede justificar. */}
-                  <ShieldCheck
-                    size={16}
-                    strokeWidth={2.5}
-                    className="absolute bottom-1 right-1"
-                    aria-hidden
-                  />
-                  <span className="sr-only">{`${record.status} — justificar`}</span>
+                  {canJustifyThisDay && (
+                    <ShieldCheck
+                      size={16}
+                      strokeWidth={2.5}
+                      className="absolute bottom-1 right-1"
+                      aria-hidden
+                    />
+                  )}
                 </button>
-              </TooltipTrigger>
-              <TooltipContent>{`${record.status} · Pulsa para justificar`}</TooltipContent>
-            </Tooltip>
+              </PopoverTrigger>
+              <PopoverContent align="center" className="w-64 rounded-xl p-4">
+                <div className="space-y-3">
+                  <p className="text-sm font-bold text-slate-800 dark:text-white">
+                    Día {record.dayNumber} · {record.status}
+                  </p>
+
+                  {entryTime && exitTime ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                        <LogIn size={16} strokeWidth={2} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
+                        Entrada: <span className="font-semibold text-slate-800 dark:text-white">{entryTime}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                        <LogOut size={16} strokeWidth={2} className="shrink-0 text-slate-500 dark:text-slate-400" />
+                        Salida: <span className="font-semibold text-slate-800 dark:text-white">{exitTime}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      El estudiante no asistió este día, sin hora de entrada ni salida registrada.
+                    </p>
+                  )}
+
+                  {canJustifyThisDay && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => onDayClick(record)}
+                      className="h-10 w-full gap-2 rounded-lg text-sm font-semibold"
+                    >
+                      <ShieldCheck size={18} strokeWidth={2} />
+                      Justificar {record.originalStatus === 'Falta' ? 'la falta' : 'la tardanza'}
+                    </Button>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
           );
         })}
       </div>
     </DetailCard>
-  </TooltipProvider>
 );
