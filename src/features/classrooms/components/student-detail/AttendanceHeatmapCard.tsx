@@ -1,181 +1,154 @@
 import React from 'react';
-import { Bell, CheckCircle2, ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { CalendarCheck, Download, ShieldCheck } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { MONTHS } from '@/features/classrooms/constants';
-import type { AttendanceCalendarDay } from '@/features/classrooms/types';
+import {
+  ATTENDANCE_LEGEND,
+  ATTENDANCE_STATUS_STYLES,
+} from '@/features/classrooms/student-detail.attendance';
+import { type AttendanceCalendarDay, isJustifiable } from '@/features/classrooms/types';
+import { cn } from '@/lib/utils';
 
-/** Tarjeta de asistencia mensual (mapa de calor) de `StudentDetail`. */
+import { DetailCard } from './DetailCard';
+
+/** Cabeceras de la rejilla: la semana empieza en lunes, como el calendario escolar. */
+const WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+/**
+ * Asistencia del mes del estudiante, día a día.
+ *
+ * Justificar una falta se hace pulsando su día, así que cada día justificable
+ * es un `button` de verdad —alcanzable con el tabulador, con foco visible— y
+ * lleva un escudo dibujado encima: la acción se ve sin pasar el ratón, que era
+ * el problema del diseño anterior (un panel negro que solo aparecía al hacer
+ * hover y que el teclado nunca llegaba a mostrar).
+ *
+ * Usa las tres bandas de `DetailCard` en el mismo orden que Incidencias: el
+ * cuerpo abre directo con la rejilla de días —el mes se elige una sola vez,
+ * arriba en la cabecera de la ficha, y gobierna esta tarjeta y la de
+ * Incidencias a la vez— y la leyenda va en el pie.
+ */
 export const AttendanceHeatmapCard: React.FC<{
-  selectedMonth: number;
-  onPrevMonth: () => void;
-  onNextMonth: () => void;
   calendarData: (AttendanceCalendarDay | null)[];
-  onOpenNotifications: () => void;
   onDownloadAttendance: () => void;
   onDayClick: (record: AttendanceCalendarDay) => void;
   /** Justificar una falta/tardanza es una acción del docente: el apoderado solo consulta. */
   canJustify?: boolean;
-}> = ({
-  selectedMonth,
-  onPrevMonth,
-  onNextMonth,
-  calendarData,
-  onOpenNotifications,
-  onDownloadAttendance,
-  onDayClick,
-  canJustify = true,
-}) => {
-  return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
-      <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex justify-between items-center sm:flex-nowrap flex-wrap gap-3">
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div className="p-1.5 sm:p-2 bg-emerald-100/80 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl">
-            <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" />
-          </div>
-          <h3 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white tracking-tight">
-            Asistencia
-          </h3>
-        </div>
-        <div className="flex items-center gap-2 sm:gap-4">
-          <TooltipProvider>
-            <div className="flex items-center gap-1 sm:gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-1 shadow-sm">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={onPrevMonth}
-                    aria-label="Mes anterior"
-                    className="h-10 w-10 rounded-lg text-slate-600 dark:text-slate-300 [&_svg]:size-4"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Mes anterior</TooltipContent>
-              </Tooltip>
-              <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200 min-w-[60px] sm:min-w-[80px] text-center">
-                {MONTHS.find((m) => m.value === selectedMonth)?.label}
-              </span>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={onNextMonth}
-                    aria-label="Mes siguiente"
-                    className="h-10 w-10 rounded-lg text-slate-600 dark:text-slate-300 [&_svg]:size-4"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Mes siguiente</TooltipContent>
-              </Tooltip>
-            </div>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="icon"
-                  onClick={onOpenNotifications}
-                  aria-label="Ver notificaciones de asistencia"
-                  className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 shadow-sm [&_svg]:size-4 sm:[&_svg]:size-5"
-                >
-                  <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Ver notificaciones de asistencia</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  onClick={onDownloadAttendance}
-                  aria-label="Descargar asistencia"
-                  className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl shadow-sm [&_svg]:size-4 sm:[&_svg]:size-5"
-                >
-                  <Download className="w-4 h-4 sm:w-5 sm:h-5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Descargar asistencia</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-      </div>
-      <div className="p-4 sm:p-6 flex-1 bg-white dark:bg-slate-900">
-        <div className="grid grid-cols-7 gap-2 sm:gap-3">
-          {["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map(
-            (day) => (
-              <div
-                key={day}
-                className="text-center text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2"
-              >
-                {day}
-              </div>
-            ),
-          )}
-          {calendarData.map((record, idx) => {
-            if (!record) {
-              return (
-                <div
-                  key={`empty-${idx}`}
-                  className="aspect-square"
-                ></div>
-              );
-            }
-            return (
-              <div
-                key={idx}
-                onClick={() =>
-                  canJustify && !record.isWeekend && onDayClick(record)
-                }
-                className={`relative aspect-square rounded-xl ${record.isWeekend ? "bg-slate-50/80 dark:bg-slate-800/50 text-slate-400 font-bold" : record.color} group ${canJustify && !record.isWeekend && (record.originalStatus === "Falta" || record.originalStatus === "Tardanza") ? "cursor-pointer hover:ring-2 hover:ring-primary/40" : "cursor-help"} transition-transform hover:scale-105 flex items-center justify-center`}
-              >
-                <span className="text-lg font-bold">
-                  {record.dayNumber}
+  className?: string;
+}> = ({ className, calendarData, onDownloadAttendance, onDayClick, canJustify = true }) => (
+  <TooltipProvider delayDuration={200}>
+    <DetailCard
+      className={className}
+      icon={CalendarCheck}
+      tone="emerald"
+      title="Asistencia"
+      action={
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onDownloadAttendance}
+          className="h-11 shrink-0 gap-2 rounded-xl px-4 text-sm font-semibold"
+        >
+          <Download size={20} strokeWidth={2} /> Descargar
+        </Button>
+      }
+      footer={
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+            {ATTENDANCE_LEGEND.map((status) => (
+              <div key={status} className="flex items-center gap-2">
+                <span
+                  className={cn(
+                    'h-4 w-4 shrink-0 rounded-full border-2',
+                    ATTENDANCE_STATUS_STYLES[status].dot,
+                  )}
+                />
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                  {status}
                 </span>
-                {!record.isWeekend && (
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/70 rounded-xl backdrop-blur-sm z-10">
-                    <span className="text-white text-xs font-bold text-center leading-tight px-1">
-                      {record.status}
-                      {canJustify &&
-                        (record.originalStatus === "Falta" ||
-                          record.originalStatus === "Tardanza") &&
-                        !record.status.includes("Justificada") && (
-                          <span className="block text-xs text-blue-300 mt-1">
-                            Click para justificar
-                          </span>
-                        )}
-                    </span>
-                  </div>
-                )}
+              </div>
+            ))}
+          </div>
+
+          {canJustify && (
+            <p className="flex items-center justify-center gap-2 text-center text-sm text-slate-500 dark:text-slate-400">
+              <ShieldCheck size={16} strokeWidth={2} className="shrink-0" />
+              Pulsa un día marcado con el escudo para justificar la falta o la tardanza.
+            </p>
+          )}
+        </div>
+      }
+    >
+      {/* Cabecera y días son dos rejillas, no una: así las filas de días
+          pueden repartirse el alto sobrante (`auto-rows-fr`) sin que la fila
+          de "LUN MAR MIÉ…" se estire con ellas. */}
+      <div className="grid w-full grid-cols-7 gap-2 pb-2">
+        {WEEKDAYS.map((day) => (
+          <div
+            key={day}
+            className="text-center text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400"
+          >
+            {day}
+          </div>
+        ))}
+      </div>
+
+      {/* Siempre 6 filas (`buildAttendanceMonth` rellena hasta 42 celdas), así
+          que el bloque mide lo mismo en febrero que en un mes de 31 días.
+          Las celdas son rectangulares —ancho el que toque, alto el que sobre—
+          en vez de cuadradas: cuadradas, a 1000px de panel, cada día sería un
+          bloque de 130px y el mes dejaría de leerse de un vistazo. */}
+      <div className="grid w-full flex-1 auto-rows-fr grid-cols-7 gap-2">
+        {calendarData.map((record, index) => {
+          if (!record) return <div key={`hueco-${index}`} className="min-h-16" />;
+
+          const style = ATTENDANCE_STATUS_STYLES[record.status];
+          const cellClasses = cn(
+            'relative flex h-full min-h-16 w-full items-center justify-center rounded-xl border-2 text-lg font-bold',
+            record.isWeekend
+              ? 'border-transparent bg-slate-50 text-slate-500 dark:bg-slate-800/40 dark:text-slate-500'
+              : style.cell,
+          );
+
+          if (!canJustify || !isJustifiable(record)) {
+            return (
+              <div key={record.date} className={cellClasses}>
+                <span>{record.dayNumber}</span>
+                <span className="sr-only">
+                  {record.isWeekend ? 'Fin de semana' : record.status}
+                </span>
               </div>
             );
-          })}
-        </div>
-        <div className="flex items-center justify-center gap-6 mt-6 md:mt-8 text-sm font-medium text-slate-600 dark:text-slate-400 flex-wrap">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full bg-emerald-100 border-2 border-emerald-200 dark:bg-emerald-900/40 dark:border-emerald-800"></div>{" "}
-            Presente
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full bg-amber-100 border-2 border-amber-200 dark:bg-amber-900/40 dark:border-amber-800"></div>{" "}
-            Tardanza
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full bg-rose-100 border-2 border-rose-200 dark:bg-rose-900/40 dark:border-rose-800"></div>{" "}
-            Falta
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded-full bg-blue-100 border-2 border-blue-200 dark:bg-blue-900/40 dark:border-blue-800"></div>{" "}
-            Justificada
-          </div>
-        </div>
+          }
+
+          return (
+            <Tooltip key={record.date}>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={() => onDayClick(record)}
+                  className={cn(
+                    cellClasses,
+                    'transition-shadow hover:ring-2 hover:ring-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900',
+                  )}
+                >
+                  <span>{record.dayNumber}</span>
+                  {/* Marca siempre visible: este día se puede justificar. */}
+                  <ShieldCheck
+                    size={16}
+                    strokeWidth={2.5}
+                    className="absolute bottom-1 right-1"
+                    aria-hidden
+                  />
+                  <span className="sr-only">{`${record.status} — justificar`}</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>{`${record.status} · Pulsa para justificar`}</TooltipContent>
+            </Tooltip>
+          );
+        })}
       </div>
-    </div>
-  );
-};
+    </DetailCard>
+  </TooltipProvider>
+);

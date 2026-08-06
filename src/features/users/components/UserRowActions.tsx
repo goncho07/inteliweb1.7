@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarDays, Eye, IdCard, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { CalendarDays, IdCard, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -20,12 +20,12 @@ import type { UserItem } from '@/types';
  */
 export const UserRowActions: React.FC<{
   user: UserItem;
+  /** Abre la ficha, que ya es editable: no hay una segunda acción «editar». */
   onView: (user: UserItem) => void;
-  onEdit: (user: UserItem) => void;
   onDelete: (user: UserItem) => void;
   onDownloadCarnet: (user: UserItem) => void;
   onViewSchedule: (user: UserItem) => void;
-}> = ({ user, onView, onEdit, onDelete, onDownloadCarnet, onViewSchedule }) => (
+}> = ({ user, onView, onDelete, onDownloadCarnet, onViewSchedule }) => (
   <DropdownMenu>
     <DropdownMenuTrigger asChild>
       <Button
@@ -48,13 +48,7 @@ export const UserRowActions: React.FC<{
         onSelect={() => onView(user)}
         className="h-10 cursor-pointer gap-3 rounded-lg px-3 text-base"
       >
-        <Eye size={20} /> Ver ficha completa
-      </DropdownMenuItem>
-      <DropdownMenuItem
-        onSelect={() => onEdit(user)}
-        className="h-10 cursor-pointer gap-3 rounded-lg px-3 text-base"
-      >
-        <Pencil size={20} /> Editar datos
+        <Pencil size={20} /> Ver y editar ficha
       </DropdownMenuItem>
       {user.role === 'Estudiante' && (
         <DropdownMenuItem

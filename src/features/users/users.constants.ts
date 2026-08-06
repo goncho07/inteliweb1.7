@@ -26,6 +26,19 @@ export const COURSES = [
 
 export const LEVEL_OPTIONS = ['Inicial', 'Primaria', 'Secundaria'] as const;
 
+/** Cargos de dirección: los cinco primeros administrativos, en este orden. */
+export const DIRECTIVE_POSITIONS = [
+  'Director', 'Subdirector', 'Coordinador académico', 'Coordinador de convivencia', 'Coordinador de nivel',
+] as const;
+
+/** Cargos del resto del personal administrativo. */
+export const STAFF_POSITIONS = [
+  'Secretario/a', 'Auxiliar de educación', 'Psicología', 'Tesorería', 'Soporte informático', 'Biblioteca',
+] as const;
+
+/** Todos los cargos administrativos, para el selector de «Cargo» del formulario. */
+export const ADMINISTRATIVE_POSITIONS = [...DIRECTIVE_POSITIONS, ...STAFF_POSITIONS] as const;
+
 /** Valor centinela de los filtros: ningún filtro aplicado sobre ese eje. */
 export const ALL = 'Todos';
 

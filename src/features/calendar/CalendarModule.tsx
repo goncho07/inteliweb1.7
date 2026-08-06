@@ -19,18 +19,15 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import {
   CITATIONS_2026,
   EVENTS_2026,
+  getStudentSchedule,
   SCHEDULE_TIME_SLOTS,
   TEACHER_SCHEDULE,
 } from '@/data/calendar';
-import { getEventBadgeStyles, getEventColor } from '@/lib/calendar';
+import { useSession } from '@/features/auth/SessionContext';
 import { cn } from '@/lib/utils';
 import type { CalendarEvent, ModuleProps } from '@/types';
 
-import { CalendarAgendaView } from './components/CalendarAgendaView';
 import { CalendarMonthGrid } from './components/CalendarMonthGrid';
-import { CalendarYearGrid } from './components/CalendarYearGrid';
-
-type CalendarViewMode = 'dia' | 'semana' | 'mes' | 'año' | 'agenda';
 
 const getDayName = (date: Date) => {
   const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
@@ -42,12 +39,16 @@ const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1
 /**
  * Módulo "Calendario": pantalla propia (accesible desde "Herramientas") con
  * la anatomía estándar de módulo — sidebar con el horario docente; panel
- * principal con el selector Mes/Semana/Día, la cuadrícula del mes (con sus
- * eventos) y el detalle de eventos del día seleccionado.
+ * principal con la cuadrícula del mes y sus eventos. Una sola vista, la
+ * mensual: el selector Día/Semana/Mes/Año/Agenda multiplicaba las formas de
+ * ver lo mismo sin que ninguna aportara algo que el mes no mostrara ya.
  */
 export const CalendarModule: React.FC<ModuleProps> = ({ globalDate, setGlobalDate }) => {
+  const session = useSession();
+  const isGuardian = session.role === 'apoderado';
+  const child = isGuardian ? session.children[0] : null;
+
   const today = globalDate ?? new Date();
-  const [viewMode, setViewMode] = useState<CalendarViewMode>('mes');
   const [calendarDate, setCalendarDate] = useState(new Date(today));
   const [selectedDay, setSelectedDay] = useState<number | null>(today.getDate());
 
@@ -56,15 +57,16 @@ export const CalendarModule: React.FC<ModuleProps> = ({ globalDate, setGlobalDat
 
   const getEventsFor = (monthIndex: number, day: number): CalendarEvent[] => {
     const key = `${monthIndex}-${day}`;
-    return [...(EVENTS_2026[key] ?? []), ...(CITATIONS_2026[key] ?? [])];
+    // El apoderado solo ve las citaciones de su propio hijo, nunca las del resto del alumnado.
+    const citations = (CITATIONS_2026[key] ?? []).filter(
+      (citation) => !isGuardian || citation.student === child?.name,
+    );
+    return [...(EVENTS_2026[key] ?? []), ...citations];
   };
 
   const eventsForDay = (day: number): CalendarEvent[] => getEventsFor(currentMonthIndex, day);
 
   const goToMonth = (offset: number) => setCalendarDate(new Date(currentYear, currentMonthIndex + offset, 1));
-  const goToYear = (offset: number) => setCalendarDate(new Date(currentYear + offset, currentMonthIndex, 1));
-  const goPrev = () => (viewMode === 'año' ? goToYear(-1) : goToMonth(-1));
-  const goNext = () => (viewMode === 'año' ? goToYear(1) : goToMonth(1));
 
   const goToToday = () => {
     const now = new Date();
@@ -78,21 +80,28 @@ export const CalendarModule: React.FC<ModuleProps> = ({ globalDate, setGlobalDat
     setGlobalDate?.(new Date(currentYear, currentMonthIndex, day));
   };
 
-  const selectedDayEvents = selectedDay ? eventsForDay(selectedDay) : [];
   const selectedWeekday = selectedDay ? getDayName(new Date(currentYear, currentMonthIndex, selectedDay)) : null;
   const todayScheduleDay = getDayName(today);
   const monthLabel = capitalize(calendarDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }));
-  const headerLabel = viewMode === 'año' ? String(currentYear) : monthLabel;
-  const stepLabel = viewMode === 'año' ? 'año' : 'mes';
+
+  const scheduleWeekday = selectedWeekday ?? todayScheduleDay;
+  const guardianDaySchedule =
+    isGuardian && child
+      ? getStudentSchedule(child.level ?? 'Primaria', child.grade ?? '', child.section ?? '', scheduleWeekday)
+      : null;
+  const sidebarLabel = isGuardian
+    ? `Horario de ${child?.name.split(' ')[0] ?? 'tu hijo'}: ${scheduleWeekday}`
+    : `Tu horario: ${scheduleWeekday}`;
 
   return (
     <ModuleShell>
       <ModuleSidebar title="Calendario" icon={CalendarDays}>
         <ModuleSidebarBody>
-          <ModuleSidebarSection label={`Tu horario: ${selectedWeekday ?? todayScheduleDay}`}>
+          <ModuleSidebarSection label={sidebarLabel}>
             {SCHEDULE_TIME_SLOTS.map((slot, i) => {
-              const weekday = selectedWeekday ?? todayScheduleDay;
-              const classData = TEACHER_SCHEDULE[weekday]?.find((t) => t.start === slot.start);
+              const classData = isGuardian
+                ? guardianDaySchedule?.[i]
+                : TEACHER_SCHEDULE[scheduleWeekday]?.find((t) => t.start === slot.start);
               // Alto e interlineado únicos para las tres variantes de franja,
               // para que el horario lea como una sola lista.
               const rowClass = 'flex min-h-11 items-center gap-3 rounded-xl px-3 py-2';
@@ -132,32 +141,7 @@ export const CalendarModule: React.FC<ModuleProps> = ({ globalDate, setGlobalDat
       <ModulePane>
         <ModulePaneHeader>
           <div className="flex min-w-0 items-center gap-3">
-            <h2 className="truncate text-lg font-bold text-slate-800 dark:text-white">{headerLabel}</h2>
-            <div className="flex shrink-0 items-center gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800">
-              {([
-                ['dia', 'Día'],
-                ['semana', 'Semana'],
-                ['mes', 'Mes'],
-                ['año', 'Año'],
-                ['agenda', 'Agenda'],
-              ] as [CalendarViewMode, string][]).map(([mode, label]) => (
-                <Button
-                  key={mode}
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setViewMode(mode)}
-                  aria-pressed={viewMode === mode}
-                  className={cn(
-                    'h-auto rounded-lg px-4 py-2 text-sm font-bold transition-colors hover:bg-transparent',
-                    viewMode === mode
-                      ? 'bg-white text-blue-700 shadow-sm hover:bg-white dark:bg-slate-700 dark:text-blue-400 dark:hover:bg-slate-700'
-                      : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200',
-                  )}
-                >
-                  {label}
-                </Button>
-              ))}
-            </div>
+            <h2 className="truncate text-lg font-bold text-slate-800 dark:text-white">{monthLabel}</h2>
           </div>
 
           <div className="flex items-center gap-2">
@@ -174,14 +158,14 @@ export const CalendarModule: React.FC<ModuleProps> = ({ globalDate, setGlobalDat
                   type="button"
                   variant="ghost"
                   size="icon"
-                  onClick={goPrev}
-                  aria-label={`${capitalize(stepLabel)} anterior`}
+                  onClick={() => goToMonth(-1)}
+                  aria-label="Mes anterior"
                   className="h-10 w-10 rounded-xl bg-slate-50 text-slate-500 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
                 >
                   <ChevronLeft size={20} />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>{capitalize(stepLabel)} anterior</TooltipContent>
+              <TooltipContent>Mes anterior</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -189,81 +173,29 @@ export const CalendarModule: React.FC<ModuleProps> = ({ globalDate, setGlobalDat
                   type="button"
                   variant="ghost"
                   size="icon"
-                  onClick={goNext}
-                  aria-label={`${capitalize(stepLabel)} siguiente`}
+                  onClick={() => goToMonth(1)}
+                  aria-label="Mes siguiente"
                   className="h-10 w-10 rounded-xl bg-slate-50 text-slate-500 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
                 >
                   <ChevronRight size={20} />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>{capitalize(stepLabel)} siguiente</TooltipContent>
+              <TooltipContent>Mes siguiente</TooltipContent>
             </Tooltip>
           </div>
         </ModulePaneHeader>
 
-        <ModuleBody centered>
-          {viewMode === 'dia' ? (
-            <div className="flex flex-col gap-3">
-              <p className="text-sm font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">
-                {selectedDay
-                  ? new Date(currentYear, currentMonthIndex, selectedDay).toLocaleDateString('es-ES', {
-                      weekday: 'long',
-                      day: 'numeric',
-                      month: 'long',
-                    })
-                  : 'Selecciona un día'}
-              </p>
-              {selectedDayEvents.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 py-16 text-center text-slate-400 dark:border-slate-700">
-                  <CalendarDays size={28} className="mb-2 opacity-50" />
-                  <p className="text-sm font-medium">No hay eventos para este día.</p>
-                </div>
-              ) : (
-                selectedDayEvents.map((ev, i) => (
-                  <div
-                    key={i}
-                    className={cn('flex items-center gap-3 rounded-2xl border px-4 py-3', getEventBadgeStyles(ev.type))}
-                  >
-                    <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full', getEventColor(ev.type))} />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-base font-bold">{ev.label}</p>
-                      {ev.reason && <p className="truncate text-sm opacity-70">{ev.reason}</p>}
-                    </div>
-                    {ev.time && <span className="shrink-0 text-sm font-bold opacity-70">{ev.time}</span>}
-                  </div>
-                ))
-              )}
-            </div>
-          ) : viewMode === 'año' ? (
-            <CalendarYearGrid
-              year={currentYear}
-              getEventsFor={getEventsFor}
-              onSelectMonth={(monthIndex) => {
-                setCalendarDate(new Date(currentYear, monthIndex, 1));
-                setViewMode('mes');
-              }}
-            />
-          ) : viewMode === 'agenda' ? (
-            <CalendarAgendaView
-              monthIndex={currentMonthIndex}
-              year={currentYear}
-              monthLabel={monthLabel}
-              getEventsFor={getEventsFor}
-              onSelectDay={(day) => {
-                handleDayClick(day);
-                setViewMode('dia');
-              }}
-            />
-          ) : (
-            <CalendarMonthGrid
-              currentMonthIndex={currentMonthIndex}
-              currentYear={currentYear}
-              viewMode={viewMode === 'semana' ? 'semana' : 'mes'}
-              selectedDay={selectedDay}
-              onDayClick={handleDayClick}
-              eventsForDay={eventsForDay}
-            />
-          )}
+        {/* A sangre, como la tabla de Usuarios: la pantalla *es* la
+            cuadrícula, así que llega a los bordes del panel y estira sus
+            filas al alto real disponible, sin margen ni ancho máximo. */}
+        <ModuleBody flush className="flex min-h-0 flex-col overflow-hidden">
+          <CalendarMonthGrid
+            currentMonthIndex={currentMonthIndex}
+            currentYear={currentYear}
+            selectedDay={selectedDay}
+            onDayClick={handleDayClick}
+            eventsForDay={eventsForDay}
+          />
         </ModuleBody>
       </ModulePane>
     </ModuleShell>

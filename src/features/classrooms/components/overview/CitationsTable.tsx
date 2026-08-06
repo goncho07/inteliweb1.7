@@ -8,14 +8,22 @@ import type { Citation } from '@/features/citations/types';
  * Citaciones: lectura de `INITIAL_CITATIONS` (el mismo dato que gestiona el
  * módulo Citaciones), filtrado por aula y periodo — las citaciones se crean
  * y editan solo allí, aquí solo se consultan.
+ *
+ * `classroomLabels` añade la columna "Aula", que en la Vista General del Aula
+ * sobra —todas las filas son de la misma— y en el panel Inicio hace falta,
+ * porque ahí conviven las citaciones de varias aulas.
  */
-export const CitationsTable: React.FC<{ citations: Citation[] }> = ({ citations }) => (
+export const CitationsTable: React.FC<{ citations: Citation[]; classroomLabels?: boolean }> = ({
+  citations,
+  classroomLabels = false,
+}) => (
   <div className="overflow-x-auto border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
     <table className="w-full min-w-[820px] border-collapse text-left text-sm">
       <thead className="bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-500 dark:bg-slate-800/50 dark:text-slate-400">
         <tr>
           <th className="w-14 p-3 text-center">N°</th>
           <th className="p-3">Estudiante</th>
+          {classroomLabels && <th className="w-28 p-3">Aula</th>}
           <th className="w-32 p-3">Fecha citación</th>
           <th className="p-3">Motivo de citación</th>
           <th className="p-3">Apoderado citado</th>
@@ -27,6 +35,11 @@ export const CitationsTable: React.FC<{ citations: Citation[] }> = ({ citations 
           <tr key={citation.id}>
             <td className="p-3 text-center text-sm font-semibold text-slate-500 dark:text-slate-400">{index + 1}</td>
             <td className="whitespace-nowrap p-3 font-semibold text-slate-800 dark:text-white">{citation.student}</td>
+            {classroomLabels && (
+              <td className="whitespace-nowrap p-3 font-semibold text-slate-600 dark:text-slate-300">
+                {citation.grade}
+              </td>
+            )}
             <td className="whitespace-nowrap p-3 text-slate-600 dark:text-slate-300">
               {citation.date} · {citation.time}
             </td>

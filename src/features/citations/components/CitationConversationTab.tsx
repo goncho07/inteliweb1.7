@@ -1,5 +1,5 @@
-import React from 'react';
-import { CheckCheck, MessageSquare } from 'lucide-react';
+import React, { useEffect, useRef } from 'react';
+import { Check, CheckCheck, MessageSquare } from 'lucide-react';
 
 import whatsappChatPattern from '@/assets/images/whatsapp-chat-pattern.png';
 import { formatRelativeDayLabel } from '@/lib/formatRelativeDate';
@@ -44,6 +44,17 @@ const isSameDay = (a: Date, b: Date): boolean =>
 export const CitationConversationTab: React.FC<{
   messages: CitationMessage[];
 }> = ({ messages }) => {
+  // Los mensajes se anclan abajo, como en cualquier chat: lo último dicho es
+  // lo que importa y es donde están las acciones del pie. Además de apoyar el
+  // contenido contra el borde inferior (`justify-end`, ver más abajo), al
+  // cambiar de citación hay que bajar el scroll — si no, una conversación
+  // larga se abriría por el primer mensaje, de hace semanas.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages]);
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/*
@@ -59,17 +70,20 @@ export const CitationConversationTab: React.FC<{
           style={{ backgroundImage: `url(${whatsappChatPattern})`, backgroundSize: '600px' }}
           aria-hidden="true"
         />
-        <div className="custom-scrollbar relative z-10 h-full overflow-y-auto p-6">
+        <div ref={scrollRef} className="custom-scrollbar relative z-10 h-full overflow-y-auto p-6">
           {messages.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-slate-400 dark:text-slate-500">
+            <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-slate-500 dark:text-slate-400">
               <MessageSquare className="h-8 w-8" strokeWidth={2} />
               <p className="text-sm font-semibold">Todavía no hay mensajes</p>
-              <p className="max-w-xs text-sm text-slate-400 dark:text-slate-500">
+              <p className="max-w-xs text-sm">
                 No hay conversación registrada con el apoderado sobre esta citación.
               </p>
             </div>
           ) : (
-            <div className="flex flex-col gap-3">
+            // `min-h-full` + `justify-end`: con pocos mensajes se apoyan contra
+            // el borde inferior en vez de dejar medio panel vacío arriba; con
+            // muchos, el contenedor crece y el scroll funciona igual.
+            <div className="flex min-h-full flex-col justify-end gap-3">
               {messages.map((msg, index) => {
                 const currentDate = messageDate(msg.timestamp);
                 const previousDate = index > 0 ? messageDate(messages[index - 1].timestamp) : null;
@@ -109,27 +123,55 @@ export const CitationConversationTab: React.FC<{
                       <div className={cn('flex min-w-0 flex-1 flex-col', isDocente ? 'items-end' : 'items-start')}>
                         <div
                           className={cn(
-                            'relative max-w-[80%] rounded-2xl px-4 pb-5 pt-2.5 text-sm leading-relaxed',
+                            // `rounded-xl`: la burbuja es contenido, no un
+                            // contenedor — con `rounded-2xl` quedaba más
+                            // redondeada que los botones del pie, invirtiendo
+                            // la jerarquía. La esquina del lado de quien habla
+                            // va a escuadra (la "cola" del chat), sin
+                            // `rounded-sm`, que está fuera de la escala.
+                            'relative max-w-[80%] rounded-xl px-4 pb-5 pt-2.5 text-sm leading-relaxed',
                             isDocente
-                              ? 'rounded-tr-sm bg-primary text-primary-foreground'
-                              : 'rounded-tl-sm border border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200',
+                              ? 'rounded-tr-none bg-primary text-primary-foreground'
+                              : 'rounded-tl-none border border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200',
                           )}
                         >
                           <p className="whitespace-pre-wrap pr-10">{msg.text}</p>
                           <span
                             className={cn(
+                              // 12px (piso de la escala) y `slate-500` como
+                              // tono más claro admitido: `slate-400` sobre
+                              // blanco se queda en ~2.8:1, ilegible para el
+                              // usuario de 40-60 años al que va dirigida la app.
                               'absolute bottom-1.5 right-3 flex items-center gap-1 text-xs',
-                              isDocente ? 'text-primary-foreground/75' : 'text-slate-400 dark:text-slate-500',
+                              isDocente ? 'text-primary-foreground/90' : 'text-slate-500 dark:text-slate-400',
                             )}
                           >
                             {bubbleTime(msg.timestamp)}
-                            {isDocente && (
-                              <CheckCheck
-                                className={cn('h-4 w-4', isRead && 'text-accent')}
-                                strokeWidth={2}
-                                aria-label={isRead ? 'Leído por el apoderado' : 'Entregado, aún no leído'}
-                              />
-                            )}
+                            {/*
+                              Entregado vs. leído se distingue por la forma del
+                              icono (un check / dos checks), no por el color:
+                              `text-accent` es el mismo azul que el fondo de la
+                              burbuja del docente (`--accent` = `--primary`), así
+                              que el estado "leído" quedaba invisible. Con dos
+                              formas distintas se lee igual en claro, en oscuro y
+                              en el tema rojo.
+                            */}
+                            {isDocente &&
+                              (isRead ? (
+                                <CheckCheck
+                                  className="h-4 w-4"
+                                  strokeWidth={2}
+                                  role="img"
+                                  aria-label="Leído por el apoderado"
+                                />
+                              ) : (
+                                <Check
+                                  className="h-4 w-4"
+                                  strokeWidth={2}
+                                  role="img"
+                                  aria-label="Entregado, aún no leído"
+                                />
+                              ))}
                           </span>
                         </div>
                       </div>

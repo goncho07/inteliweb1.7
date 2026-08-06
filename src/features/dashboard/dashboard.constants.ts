@@ -1,4 +1,6 @@
 import { CHART_COLORS } from '@/components/charts/chartTheme';
+import { MONTH_NAMES, SCHOOL_TERMS } from '@/data/calendar';
+import { EDUCATIONAL_STRUCTURE } from '@/data/education';
 import { MOCK_USERS } from '@/data/users';
 import { getClassroomLabel } from '@/features/classrooms/overview.format';
 import { pseudoRandom } from '@/lib/pseudoRandom';
@@ -36,19 +38,6 @@ export type EducationLevel = 'Inicial' | 'Primaria' | 'Secundaria';
 
 export const EDUCATION_LEVELS: EducationLevel[] = ['Inicial', 'Primaria', 'Secundaria'];
 
-/**
- * Asistencia general de la semana en curso (todos los niveles), para el
- * gráfico de barras del panel Inicio. Es un dato "en vivo" y no cambia con
- * el bimestre elegido en el panel lateral.
- */
-export const WEEKLY_ATTENDANCE_DATA: WeeklyAttendancePoint[] = [
-  { day: 'Lun', presente: 95, ausente: 2, tardanza: 3 },
-  { day: 'Mar', presente: 93, ausente: 3, tardanza: 4 },
-  { day: 'Mié', presente: 89, ausente: 6, tardanza: 5 },
-  { day: 'Jue', presente: 91, ausente: 4, tardanza: 5 },
-  { day: 'Vie', presente: 87, ausente: 8, tardanza: 5 },
-];
-
 export type BimestreId = 1 | 2 | 3 | 4;
 
 export interface Bimestre {
@@ -60,17 +49,23 @@ export interface Bimestre {
   end: Date;
 }
 
+/** "16 mar", el formato corto del rango que se lee en el selector de bimestre. */
+const formatTermDay = (date: Date): string =>
+  `${String(date.getDate()).padStart(2, '0')} ${MONTH_NAMES[date.getMonth()].slice(0, 3).toLowerCase()}`;
+
 /**
- * Calendario bimestral 2026 del colegio. Las fechas solo se usan para ubicar
- * el bimestre vigente por defecto al abrir el panel Inicio; no hay más
- * bimestres registrados que estos 4.
+ * Calendario bimestral del colegio, tal cual lo define `SCHOOL_TERMS`
+ * (determinación de bimestres del Ministerio de Educación). Las fechas no se
+ * repiten aquí: este selector y la numeración de semanas de los reportes de
+ * Aulas leen el mismo calendario, así que no pueden desincronizarse.
  */
-export const BIMESTRES: Bimestre[] = [
-  { id: 1, label: '1° Bimestre', range: '02 mar – 08 may', start: new Date(2026, 2, 2), end: new Date(2026, 4, 8) },
-  { id: 2, label: '2° Bimestre', range: '11 may – 24 jul', start: new Date(2026, 4, 11), end: new Date(2026, 6, 24) },
-  { id: 3, label: '3° Bimestre', range: '10 ago – 16 oct', start: new Date(2026, 7, 10), end: new Date(2026, 9, 16) },
-  { id: 4, label: '4° Bimestre', range: '19 oct – 18 dic', start: new Date(2026, 9, 19), end: new Date(2026, 11, 18) },
-];
+export const BIMESTRES: Bimestre[] = SCHOOL_TERMS.map((term) => ({
+  id: term.id,
+  label: term.label,
+  range: `${formatTermDay(term.start)} – ${formatTermDay(term.end)}`,
+  start: term.start,
+  end: term.end,
+}));
 
 /**
  * Bimestre vigente por defecto al abrir el panel: el primero cuyo cierre no
@@ -116,21 +111,6 @@ export interface IncidentTypeCount {
   severity: IncidentSeverityLevel;
   fill: string;
 }
-
-/**
- * Tipos de incidencia de la semana en curso — dato "en vivo", no cambia con
- * el bimestre elegido en el panel lateral (misma semántica que
- * `WEEKLY_ATTENDANCE_DATA`), para la vista "Semana" de la tarjeta Tipos de
- * Incidencia. Siempre 5 tipos, igual que la vista "Bimestre" — ningún
- * gráfico del panel Inicio muestra menos de 5 barras.
- */
-export const WEEKLY_INCIDENT_TYPE_DATA: IncidentTypeCount[] = [
-  { type: 'Uniforme incompleto', count: 3, severity: 'Leve', fill: INCIDENT_SEVERITY_COLORS.Leve },
-  { type: 'Uso de celular', count: 2, severity: 'Moderada', fill: INCIDENT_SEVERITY_COLORS.Moderada },
-  { type: 'Falta de aseo personal', count: 2, severity: 'Leve', fill: INCIDENT_SEVERITY_COLORS.Leve },
-  { type: 'Indisciplina en aula', count: 1, severity: 'Moderada', fill: INCIDENT_SEVERITY_COLORS.Moderada },
-  { type: 'Agresión física', count: 1, severity: 'Grave', fill: INCIDENT_SEVERITY_COLORS.Grave },
-];
 
 interface RankingPoolEntry {
   label: string;
@@ -202,21 +182,27 @@ const STUDENT_POOL: RankingPoolEntry[] = CLASSROOM_POOL.map((classroom) => {
   };
 });
 
+/** Aulas de un docente que caben en sus tarjetas de ranking del panel Inicio. */
+const TEACHER_CLASSROOM_LIMIT = 5;
+
+/** Un aula cualquiera en el formato que consumen los rankings. */
+const toRankingEntry = (classroom: ClassroomRef): RankingPoolEntry => ({
+  label: getClassroomLabel(classroom),
+  level: classroom.level as EducationLevel,
+  grade: classroom.grade,
+  section: classroom.section,
+});
+
 /**
  * Hasta 5 aulas del docente, en el mismo formato que `CLASSROOM_POOL`, para
  * que sus tarjetas de ranking del panel Inicio muestren solo sus aulas.
  */
 export const buildScopedClassroomPool = (classrooms: ClassroomRef[]): RankingPoolEntry[] =>
-  classrooms.slice(0, 5).map((classroom) => ({
-    label: getClassroomLabel(classroom),
-    level: classroom.level as EducationLevel,
-    grade: classroom.grade,
-    section: classroom.section,
-  }));
+  classrooms.slice(0, TEACHER_CLASSROOM_LIMIT).map(toRankingEntry);
 
 /** Un alumno real por cada una de las aulas del docente (hasta 5), mismo criterio que `STUDENT_POOL`. */
 export const buildScopedStudentPool = (classrooms: ClassroomRef[]): RankingPoolEntry[] =>
-  classrooms.slice(0, 5).flatMap((classroom) => {
+  classrooms.slice(0, TEACHER_CLASSROOM_LIMIT).flatMap((classroom) => {
     const student = pickEnrolledStudent(classroom, `docente-student-pool-${classroom.level}-${classroom.grade}-${classroom.section}`);
     if (!student) return [];
     return [
@@ -228,6 +214,96 @@ export const buildScopedStudentPool = (classrooms: ClassroomRef[]): RankingPoolE
       },
     ];
   });
+
+/**
+ * Nivel → grado → secciones que el filtro de la cabecera puede ofrecer. El
+ * árbol lo construye `visibleClassroomTree` (`@/features/auth/scope`), el
+ * único sitio que decide qué ve cada rol: completo para un directivo o
+ * auxiliar, recortado a sus aulas para un docente — ofrecerle "5° de
+ * Secundaria" cuando enseña en Inicial sería un filtro que solo puede
+ * devolver un gráfico vacío.
+ */
+export type ScopeStructure = Record<string, Record<string, string[]>>;
+
+/** Todas las aulas de la institución (`EDUCATIONAL_STRUCTURE`) en formato de ranking. */
+const ALL_CLASSROOMS: RankingPoolEntry[] = Object.entries(EDUCATIONAL_STRUCTURE).flatMap(([level, grades]) =>
+  Object.entries(grades).flatMap(([grade, sections]) =>
+    sections.map((section) => ({
+      label: getClassroomLabel({ level, grade, section }),
+      level: level as EducationLevel,
+      grade,
+      section,
+    })),
+  ),
+);
+
+/** Alumnos matriculados de un aula concreta, en el orden estable de `MOCK_USERS`. */
+const enrolledStudents = (classroom: RankingPoolEntry) =>
+  MOCK_USERS.filter(
+    (user) =>
+      user.role === 'Estudiante' &&
+      user.status === 'Matriculado' &&
+      user.level === classroom.level &&
+      user.grade === classroom.grade &&
+      user.section === classroom.section,
+  );
+
+/**
+ * Aulas que alimentan los rankings, según el filtro de la cabecera y el
+ * alcance del usuario (todo el colegio para un directivo; sus aulas para un
+ * docente).
+ *
+ * Sin filtro se usa el pool curado de 5 aulas por nivel (`CLASSROOM_POOL`);
+ * con filtro, las aulas reales de ese nivel/grado/sección — si no, elegir
+ * "1° Grado B de Secundaria" dejaría el gráfico vacío solo porque esa aula no
+ * está en la muestra. La puntuación se siembra con la etiqueta del aula, así
+ * que un aula muestra el mismo número venga del pool que venga.
+ */
+export const buildClassroomPool = (
+  scope: DashboardScope,
+  teacherClassrooms?: ClassroomRef[],
+): RankingPoolEntry[] => {
+  if (teacherClassrooms) {
+    // El recorte a 5 aulas va después de filtrar: un docente con 6 aulas puede
+    // elegir cualquiera de ellas en el filtro, no solo las 5 primeras.
+    return teacherClassrooms
+      .map(toRankingEntry)
+      .filter((entry) => matchesScope(entry, scope))
+      .slice(0, TEACHER_CLASSROOM_LIMIT);
+  }
+  if (isFullSchoolScope(scope)) return CLASSROOM_POOL;
+  return ALL_CLASSROOMS.filter((entry) => matchesScope(entry, scope));
+};
+
+/**
+ * Alumnos que alimentan los rankings de estudiantes, con el mismo criterio.
+ * Cuando el filtro deja una sola aula, el ranking se arma con alumnos de esa
+ * aula (uno por aula dejaría una única barra); con varias aulas, un alumno
+ * representativo de cada una.
+ */
+export const buildStudentPool = (
+  scope: DashboardScope,
+  teacherClassrooms?: ClassroomRef[],
+): RankingPoolEntry[] => {
+  if (teacherClassrooms) {
+    const pool = buildScopedStudentPool(teacherClassrooms).filter((entry) => matchesScope(entry, scope));
+    if (pool.length > 1) return pool;
+  }
+  if (!teacherClassrooms && isFullSchoolScope(scope)) return STUDENT_POOL;
+
+  const classrooms = buildClassroomPool(scope, teacherClassrooms);
+  const perClassroom = classrooms.length === 1 ? 5 : 1;
+  return classrooms.slice(0, 5).flatMap((classroom) =>
+    enrolledStudents(classroom)
+      .slice(0, perClassroom)
+      .map((student) => ({
+        label: shortStudentLabel(student.name),
+        level: classroom.level,
+        grade: classroom.grade,
+        section: classroom.section,
+      })),
+  );
+};
 
 /**
  * Genera un ranking determinista (misma semilla = mismo resultado siempre,
@@ -266,14 +342,93 @@ export const getStudentIncidentRanking = (bimestreId: BimestreId, pool: RankingP
 export const getStudentAbsenceRanking = (bimestreId: BimestreId, pool: RankingPoolEntry[] = STUDENT_POOL): RankingPoint[] =>
   buildRanking(pool, bimestreId, 'estudiante-faltas', 6, ABSENCE_RANKING_SCALE[bimestreId]);
 
+/* -------------------------------------------------------------------------
+ * Ámbito del panel (nivel → grado → sección)
+ * ---------------------------------------------------------------------- */
+
+/** Valor de un filtro de ámbito sin usar — mismo literal que Usuarios y Citaciones. */
+export const ALL_SCOPE = 'Todos';
+
+/** Qué aulas alimentan los gráficos del panel Inicio. */
+export interface DashboardScope {
+  level: string;
+  grade: string;
+  section: string;
+}
+
+/** Todo el colegio: el panel arranca siempre así. */
+export const FULL_SCHOOL_SCOPE: DashboardScope = {
+  level: ALL_SCOPE,
+  grade: ALL_SCOPE,
+  section: ALL_SCOPE,
+};
+
+export const isFullSchoolScope = (scope: DashboardScope): boolean =>
+  scope.level === ALL_SCOPE && scope.grade === ALL_SCOPE && scope.section === ALL_SCOPE;
+
+const scopeSeed = (scope: DashboardScope) => `${scope.level}-${scope.grade}-${scope.section}`;
+
+/** Un aula (o el aula de un estudiante) cae dentro del ámbito elegido. */
+export const matchesScope = (
+  entry: { level: string; grade: string; section: string },
+  scope: DashboardScope,
+): boolean =>
+  (scope.level === ALL_SCOPE || entry.level === scope.level) &&
+  (scope.grade === ALL_SCOPE || entry.grade === scope.grade) &&
+  (scope.section === ALL_SCOPE || entry.section === scope.section);
+
+export const filterRankingByScope = (points: RankingPoint[], scope: DashboardScope): RankingPoint[] =>
+  isFullSchoolScope(scope) ? points : points.filter((point) => matchesScope(point, scope));
+
+/**
+ * Asistencia del ámbito elegido. Los rankings sí traen nivel/grado/sección por
+ * fila y se filtran de verdad, pero la asistencia y los tipos de incidencia
+ * son totales del colegio: no hay un desglose por aula que recortar. En vez de
+ * dejar esas dos tarjetas quietas mientras las otras dos cambian —un filtro
+ * que a medias no hace nada—, se deriva una variante determinista del ámbito
+ * (`pseudoRandom`, misma aula = mismo dato siempre). Son datos simulados, como
+ * todo el panel.
+ */
+export const getScopedWeeklyAttendance = (
+  base: WeeklyAttendancePoint[],
+  scope: DashboardScope,
+): WeeklyAttendancePoint[] => {
+  if (isFullSchoolScope(scope)) return base;
+  const seed = scopeSeed(scope);
+  return base.map((point) => {
+    // ±6 puntos de asistencia respecto al consolidado del colegio.
+    const delta = Math.round((pseudoRandom(`asistencia-${seed}-${point.day}`) - 0.5) * 12);
+    const presente = Math.min(100, Math.max(70, point.presente + delta));
+    const remainder = 100 - presente;
+    const baseRemainder = point.ausente + point.tardanza;
+    // El reparto ausente/tardanza mantiene la proporción del dato de origen.
+    const ausente = baseRemainder === 0 ? remainder : Math.round((remainder * point.ausente) / baseRemainder);
+    return { ...point, presente, ausente, tardanza: remainder - ausente };
+  });
+};
+
+/** Tipos de incidencia del ámbito elegido; mismo criterio que `getScopedWeeklyAttendance`. */
+export const getScopedIncidentTypes = (
+  base: IncidentTypeCount[],
+  scope: DashboardScope,
+): IncidentTypeCount[] => {
+  if (isFullSchoolScope(scope)) return base;
+  const seed = scopeSeed(scope);
+  return base
+    .map((item) => ({
+      ...item,
+      count: Math.max(1, Math.round(item.count * (0.4 + pseudoRandom(`incidencias-${seed}-${item.type}`) * 0.9))),
+    }))
+    .sort((a, b) => b.count - a.count);
+};
+
 export interface BimestreDashboardData {
   /** Asistencia promedio del bimestre (KPI de la fila superior). */
   attendanceAvg: number;
   /**
-   * Patrón semanal consolidado del bimestre (Lun-Vie), para la vista
-   * "Bimestre" de la tarjeta de Asistencia — misma forma que
-   * `WEEKLY_ATTENDANCE_DATA` (la semana en curso), pero como promedio
-   * representativo del bimestre en vez de un dato "en vivo".
+   * Patrón semanal consolidado del bimestre (Lun-Vie). No se dibuja tal cual:
+   * es la base de la que la tarjeta de Asistencia deriva cada día real de la
+   * semana elegida (ver `dashboard.weeks.ts`).
    */
   weeklyAttendance: WeeklyAttendancePoint[];
   /** Asistencia consolidada del bimestre por nivel educativo (Inicial/Primaria/Secundaria). */

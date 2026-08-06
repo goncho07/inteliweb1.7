@@ -1,15 +1,27 @@
 import React, { useMemo, useState } from 'react';
-import { AlertCircle, Lock, Pencil, UserPlus } from 'lucide-react';
+import {
+  CreditCard,
+  GraduationCap,
+  Lock,
+  Pencil,
+  Phone,
+  ShieldCheck,
+  UserPlus,
+} from 'lucide-react';
 
 import {
+  DIALOG_ACTION_CLASS,
+  DialogShellBody,
+  DialogShellCancelButton,
   DialogShellContent,
   DialogShellFooter,
   DialogShellHeader,
+  DialogShellSection,
 } from '@/components/common/DialogShell';
+import { Field, FieldGrid } from '@/components/common/FormField';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -18,6 +30,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  ADMINISTRATIVE_POSITIONS,
   LEVEL_OPTIONS,
   ROLE_META,
   ROLE_ORDER,
@@ -38,46 +51,15 @@ import type { UserItem, UserRole, UserStatus } from '@/types';
 
 /**
  * Alta y edición de un usuario. Es el mismo formulario en los dos modos: lo
- * único que cambia es el DNI, que se fija al crear y queda bloqueado al
- * editar — identifica al registro y cambiarlo equivaldría a suplantar a otra
- * persona. Todo lo demás (incluido el tipo de usuario) es editable.
+ * que cambia son los códigos, que se fijan al crear y quedan bloqueados al
+ * editar. El DNI identifica al registro —cambiarlo equivaldría a suplantar a
+ * otra persona— y el código modular lo asigna el SIAGIE, no el colegio. Todo
+ * lo demás (tipo de usuario, identidad, contacto y aula) es editable.
+ *
+ * El cuerpo (`UserFormBody`) se exporta aparte porque la ficha del usuario lo
+ * monta dentro de su propia ventana al pulsar «Editar datos»: se edita ahí
+ * mismo, sin abrir una segunda ventana encima de la primera.
  */
-
-const Field: React.FC<{
-  id: string;
-  label: string;
-  error?: string;
-  hint?: string;
-  className?: string;
-  children: React.ReactNode;
-}> = ({ id, label, error, hint, className, children }) => (
-  <div className={cn('flex flex-col gap-2', className)}>
-    <Label htmlFor={id} className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-      {label}
-    </Label>
-    {children}
-    {error ? (
-      <p
-        id={`${id}-error`}
-        role="alert"
-        className="flex items-center gap-2 text-sm font-medium text-destructive"
-      >
-        <AlertCircle size={16} /> {error}
-      </p>
-    ) : (
-      hint && <p className="text-sm text-slate-500 dark:text-slate-400">{hint}</p>
-    )}
-  </div>
-);
-
-const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-  <section className="flex flex-col gap-4">
-    <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-      {title}
-    </h3>
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">{children}</div>
-  </section>
-);
 
 interface UserFormDialogProps {
   open: boolean;
@@ -90,16 +72,56 @@ interface UserFormDialogProps {
   onSubmit: (values: UserFormValues) => void;
 }
 
+interface UserFormBodyProps extends Omit<UserFormDialogProps, 'open'> {
+  /** Cabecera propia. Sin ella se usa la del alta/edición genérica. */
+  header?: React.ReactNode;
+  /** Apartados de solo lectura que se añaden al final (familia, acceso…). */
+  extraSections?: React.ReactNode;
+  /** Texto del botón de salida. «Cancelar» por defecto. */
+  cancelLabel?: string;
+  /** Texto de la acción principal. Por defecto, según sea alta o edición. */
+  submitLabel?: string;
+}
+
+/** Clase común de los controles del formulario: 44px de alto, como el contrato. */
+const CONTROL_CLASS = 'h-11 rounded-xl text-base';
+
+/** Campo de solo lectura: el dato se ve, pero no se puede escribir sobre él. */
+const LockedInput: React.FC<{
+  id: string;
+  value: string;
+  placeholder?: string;
+}> = ({ id, value, placeholder }) => (
+  <div className="relative">
+    <Input
+      id={id}
+      value={value}
+      disabled
+      placeholder={placeholder}
+      className={cn(CONTROL_CLASS, 'pr-11 tabular-nums')}
+    />
+    <Lock
+      size={20}
+      aria-hidden
+      className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+    />
+  </div>
+);
+
 /**
- * Cuerpo del formulario. Va aparte porque `DialogContent` solo monta a sus
- * hijos mientras la ventana está abierta: así el formulario nace con los
- * datos de la persona correcta cada vez que se abre, sin un efecto que
- * reescriba el estado después de pintar.
+ * Cuerpo del formulario: cabecera, campos y pie. Va aparte porque
+ * `DialogContent` solo monta a sus hijos mientras la ventana está abierta, así
+ * que el formulario nace con los datos de la persona correcta cada vez que se
+ * abre, sin un efecto que reescriba el estado después de pintar.
  */
-const UserFormBody: React.FC<Omit<UserFormDialogProps, 'open'>> = ({
+export const UserFormBody: React.FC<UserFormBodyProps> = ({
   user,
   defaultRole,
   existingDnis,
+  header,
+  extraSections,
+  cancelLabel,
+  submitLabel,
   onClose,
   onSubmit,
 }) => {
@@ -131,6 +153,9 @@ const UserFormBody: React.FC<Omit<UserFormDialogProps, 'open'>> = ({
         ? previous.status
         : STATUS_BY_ROLE[role][0],
       ...(ROLE_META[role].hasClassroom ? {} : { level: NONE, grade: NONE, section: NONE }),
+      // El correo de un estudiante no se pide ni se guarda: si venía escrito
+      // de otro rol, se descarta al cambiar.
+      ...(role === 'Estudiante' ? { email: '' } : {}),
     }));
     setErrors({});
   };
@@ -157,264 +182,169 @@ const UserFormBody: React.FC<Omit<UserFormDialogProps, 'open'>> = ({
   const meta = ROLE_META[values.role];
   const gradeOptions = gradesForLevel(values.level);
   const sectionOptions = sectionsForGrade(values.level, values.grade);
+  const isStudent = values.role === 'Estudiante';
 
   return (
     <>
-      <DialogShellHeader
-        icon={isEditing ? Pencil : UserPlus}
-        title={isEditing ? `Editar ${ROLE_META[user.role].singular.toLowerCase()}` : 'Crear usuario'}
-        description={
-          isEditing
-            ? `${user.name} · DNI ${user.dni}`
-            : 'Rellena los datos de la persona. Podrás cambiarlos después, salvo el DNI.'
-        }
-      />
+      {header ?? (
+        <DialogShellHeader
+          icon={isEditing ? Pencil : UserPlus}
+          title={
+            isEditing ? `Editar ${ROLE_META[user.role].singular.toLowerCase()}` : 'Crear usuario'
+          }
+          description={
+            isEditing
+              ? `${user.name} · DNI ${user.dni}`
+              : 'Rellena los datos de la persona. Podrás cambiarlos después, salvo los códigos.'
+          }
+        />
+      )}
 
       <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-        <div className="custom-scrollbar flex flex-col gap-6 overflow-y-auto p-6">
-          <Section title="Identidad">
-            <Field id="role" label="Tipo de usuario">
-              <Select value={values.role} onValueChange={(value) => changeRole(value as UserRole)}>
-                <SelectTrigger id="role" className="h-11 rounded-xl text-base">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl">
-                  {ROLE_ORDER.map((role) => (
-                    <SelectItem key={role} value={role} className="h-10 text-base">
-                      {ROLE_META[role].singular}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
+        <DialogShellBody flush>
+          <DialogShellSection title="Identidad" icon={CreditCard}>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Los campos marcados con <span className="font-bold text-destructive">*</span> son
+              obligatorios.
+            </p>
 
-            <Field id="status" label="Estado" error={errors.status}>
-              <Select
-                value={values.status}
-                onValueChange={(value) => setField('status', value as UserStatus)}
-              >
-                <SelectTrigger id="status" className="h-11 rounded-xl text-base">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl">
-                  {STATUS_BY_ROLE[values.role].map((status) => (
-                    <SelectItem key={status} value={status} className="h-10 text-base">
-                      {status}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
+            <FieldGrid>
+              <Field id="role" label="Tipo de usuario" required>
+                <Select value={values.role} onValueChange={(value) => changeRole(value as UserRole)}>
+                  <SelectTrigger id="role" className={CONTROL_CLASS}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    {ROLE_ORDER.map((role) => (
+                      <SelectItem key={role} value={role} className="h-10 text-base">
+                        {ROLE_META[role].singular}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
 
-            <Field
-              id="name"
-              label="Nombre y apellidos"
-              error={errors.name}
-              className="sm:col-span-2"
-            >
-              <Input
+              <Field id="status" label="Estado" error={errors.status} required>
+                <Select
+                  value={values.status}
+                  onValueChange={(value) => setField('status', value as UserStatus)}
+                >
+                  <SelectTrigger id="status" className={CONTROL_CLASS}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    {STATUS_BY_ROLE[values.role].map((status) => (
+                      <SelectItem key={status} value={status} className="h-10 text-base">
+                        {status}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+
+              <Field
                 id="name"
-                value={values.name}
-                onChange={(event) => setField('name', event.target.value)}
-                placeholder="Ej: María Quispe Flores"
-                aria-invalid={Boolean(errors.name)}
-                aria-describedby={errors.name ? 'name-error' : undefined}
-                className="h-11 rounded-xl text-base"
-              />
-            </Field>
-
-            <Field
-              id="dni"
-              label="DNI"
-              error={errors.dni}
-              hint={
-                isEditing
-                  ? 'El DNI identifica al registro y no se puede modificar.'
-                  : '8 dígitos, sin puntos ni guiones.'
-              }
-            >
-              <div className="relative">
+                label="Nombre y apellidos"
+                error={errors.name}
+                required
+                className="sm:col-span-2"
+              >
                 <Input
-                  id="dni"
-                  value={values.dni}
-                  onChange={(event) =>
-                    setField('dni', event.target.value.replace(/\D/g, '').slice(0, 8))
-                  }
-                  disabled={isEditing}
-                  inputMode="numeric"
-                  placeholder="12345678"
-                  aria-invalid={Boolean(errors.dni)}
-                  aria-describedby={errors.dni ? 'dni-error' : undefined}
-                  className={cn('h-11 rounded-xl text-base tabular-nums', isEditing && 'pr-11')}
+                  id="name"
+                  value={values.name}
+                  onChange={(event) => setField('name', event.target.value)}
+                  placeholder="Ej: María Quispe Flores"
+                  aria-invalid={Boolean(errors.name)}
+                  aria-describedby={errors.name ? 'name-error' : undefined}
+                  className={CONTROL_CLASS}
                 />
-                {isEditing && (
-                  <Lock
-                    size={20}
-                    aria-hidden
-                    className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+              </Field>
+
+              <Field
+                id="dni"
+                label="DNI"
+                error={errors.dni}
+                required={!isEditing}
+                hint={
+                  isEditing
+                    ? 'El DNI identifica al registro y no se puede modificar.'
+                    : '8 dígitos, sin puntos ni guiones.'
+                }
+              >
+                {isEditing ? (
+                  <LockedInput id="dni" value={values.dni} />
+                ) : (
+                  <Input
+                    id="dni"
+                    value={values.dni}
+                    onChange={(event) =>
+                      setField('dni', event.target.value.replace(/\D/g, '').slice(0, 8))
+                    }
+                    inputMode="numeric"
+                    placeholder="12345678"
+                    aria-invalid={Boolean(errors.dni)}
+                    aria-describedby={errors.dni ? 'dni-error' : undefined}
+                    className={cn(CONTROL_CLASS, 'tabular-nums')}
                   />
                 )}
-              </div>
-            </Field>
+              </Field>
 
-            <Field id="gender" label="Género">
-              <Select
-                value={values.gender}
-                onValueChange={(value) => setField('gender', value as 'M' | 'F')}
-              >
-                <SelectTrigger id="gender" className="h-11 rounded-xl text-base">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl">
-                  <SelectItem value="F" className="h-10 text-base">
-                    Femenino
-                  </SelectItem>
-                  <SelectItem value="M" className="h-10 text-base">
-                    Masculino
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
+              <Field id="gender" label="Género" required>
+                <Select
+                  value={values.gender}
+                  onValueChange={(value) => setField('gender', value as 'M' | 'F')}
+                >
+                  <SelectTrigger id="gender" className={CONTROL_CLASS}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    <SelectItem value="F" className="h-10 text-base">
+                      Femenino
+                    </SelectItem>
+                    <SelectItem value="M" className="h-10 text-base">
+                      Masculino
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
 
-            <Field id="birthDate" label="Fecha de nacimiento" error={errors.birthDate}>
-              <Input
+              <Field
                 id="birthDate"
-                type="date"
-                value={values.birthDate}
-                onChange={(event) => setField('birthDate', event.target.value)}
-                max={new Date().toISOString().slice(0, 10)}
-                aria-invalid={Boolean(errors.birthDate)}
-                aria-describedby={errors.birthDate ? 'birthDate-error' : undefined}
-                className="h-11 rounded-xl text-base"
-              />
-            </Field>
-          </Section>
-
-          <Section title="Contacto">
-            <Field id="email" label="Correo electrónico" error={errors.email}>
-              <Input
-                id="email"
-                type="email"
-                value={values.email}
-                onChange={(event) => setField('email', event.target.value)}
-                placeholder="nombre.apellido@colegio.edu.pe"
-                aria-invalid={Boolean(errors.email)}
-                aria-describedby={errors.email ? 'email-error' : undefined}
-                className="h-11 rounded-xl text-base"
-              />
-            </Field>
-
-            <Field
-              id="phone"
-              label="Teléfono"
-              error={errors.phone}
-              hint="9 dígitos, empezando por 9."
-            >
-              <Input
-                id="phone"
-                inputMode="numeric"
-                value={values.phone}
-                onChange={(event) =>
-                  setField('phone', event.target.value.replace(/\D/g, '').slice(0, 9))
-                }
-                placeholder="987654321"
-                aria-invalid={Boolean(errors.phone)}
-                aria-describedby={errors.phone ? 'phone-error' : undefined}
-                className="h-11 rounded-xl text-base tabular-nums"
-              />
-            </Field>
-
-            <Field id="address" label="Dirección" className="sm:col-span-2">
-              <Input
-                id="address"
-                value={values.address}
-                onChange={(event) => setField('address', event.target.value)}
-                placeholder="Av. Los Héroes 123"
-                className="h-11 rounded-xl text-base"
-              />
-            </Field>
-          </Section>
-
-          {meta.hasClassroom && (
-            <Section title={values.role === 'Estudiante' ? 'Aula asignada' : 'Aula que tutela'}>
-              <Field id="level" label="Nivel educativo" error={errors.level}>
-                <Select value={values.level} onValueChange={changeLevel}>
-                  <SelectTrigger id="level" className="h-11 rounded-xl text-base">
-                    <SelectValue placeholder="Sin asignar" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    <SelectItem value={NONE} className="h-10 text-base">
-                      Sin asignar
-                    </SelectItem>
-                    {LEVEL_OPTIONS.map((level) => (
-                      <SelectItem key={level} value={level} className="h-10 text-base">
-                        {level}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-
-              <Field
-                id="grade"
-                label="Grado"
-                error={errors.grade}
-                hint={values.level === NONE ? 'Elige primero el nivel.' : undefined}
+                label="Fecha de nacimiento"
+                error={errors.birthDate}
+                required
+                className={isStudent ? undefined : 'sm:col-span-2'}
               >
-                <Select
-                  value={values.grade}
-                  onValueChange={changeGrade}
-                  disabled={values.level === NONE}
-                >
-                  <SelectTrigger id="grade" className="h-11 rounded-xl text-base">
-                    <SelectValue placeholder="Sin asignar" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    <SelectItem value={NONE} className="h-10 text-base">
-                      Sin asignar
-                    </SelectItem>
-                    {gradeOptions.map((grade) => (
-                      <SelectItem key={grade} value={grade} className="h-10 text-base">
-                        {grade}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input
+                  id="birthDate"
+                  type="date"
+                  value={values.birthDate}
+                  onChange={(event) => setField('birthDate', event.target.value)}
+                  max={new Date().toISOString().slice(0, 10)}
+                  aria-invalid={Boolean(errors.birthDate)}
+                  aria-describedby={errors.birthDate ? 'birthDate-error' : undefined}
+                  className={CONTROL_CLASS}
+                />
               </Field>
 
-              <Field
-                id="section"
-                label="Sección"
-                error={errors.section}
-                hint={values.grade === NONE ? 'Elige primero el grado.' : undefined}
-              >
-                <Select
-                  value={values.section}
-                  onValueChange={(value) => setField('section', value)}
-                  disabled={values.grade === NONE}
-                >
-                  <SelectTrigger id="section" className="h-11 rounded-xl text-base">
-                    <SelectValue placeholder="Sin asignar" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl">
-                    <SelectItem value={NONE} className="h-10 text-base">
-                      Sin asignar
-                    </SelectItem>
-                    {sectionOptions.map((section) => (
-                      <SelectItem key={section} value={section} className="h-10 text-base">
-                        {section}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-
-              {values.role === 'Estudiante' && (
+              {/* El código del estudiante lo asigna el SIAGIE: se ve junto al
+                  resto de su identidad, pero no se escribe. */}
+              {isStudent && isEditing && (
                 <Field
                   id="modularCode"
-                  label="Código modular"
+                  label="Código del estudiante"
+                  hint="Lo asigna el SIAGIE y no se puede modificar."
+                >
+                  <LockedInput id="modularCode" value={user.modularCode ?? 'Sin registrar'} />
+                </Field>
+              )}
+
+              {isStudent && !isEditing && (
+                <Field
+                  id="modularCode"
+                  label="Código del estudiante"
                   error={errors.modularCode}
-                  hint="14 dígitos del SIAGIE. Opcional."
+                  hint="14 dígitos del SIAGIE. Opcional; después no podrá cambiarse."
                 >
                   <Input
                     id="modularCode"
@@ -426,51 +356,190 @@ const UserFormBody: React.FC<Omit<UserFormDialogProps, 'open'>> = ({
                     placeholder="00000090275274"
                     aria-invalid={Boolean(errors.modularCode)}
                     aria-describedby={errors.modularCode ? 'modularCode-error' : undefined}
-                    className="h-11 rounded-xl text-base tabular-nums"
+                    className={cn(CONTROL_CLASS, 'tabular-nums')}
                   />
                 </Field>
               )}
+            </FieldGrid>
+          </DialogShellSection>
 
-              {values.role === 'Docente' && (
-                <Field id="subject" label="Curso que dicta">
+          {/* Un alumno no tiene su propio apartado de Contacto: el teléfono y
+              la dirección que importan son los de su apoderado, que vive en
+              «Apoderados registrados». */}
+          {!isStudent && (
+            <DialogShellSection title="Contacto" icon={Phone}>
+              <FieldGrid>
+                <Field
+                  id="email"
+                  label="Correo electrónico"
+                  error={errors.email}
+                  hint="Opcional. Si lo escribes, debe tener un formato válido."
+                >
                   <Input
-                    id="subject"
-                    value={values.subject}
-                    onChange={(event) => setField('subject', event.target.value)}
-                    placeholder="Ej: Matemática"
-                    className="h-11 rounded-xl text-base"
+                    id="email"
+                    type="email"
+                    value={values.email}
+                    onChange={(event) => setField('email', event.target.value)}
+                    placeholder="nombre.apellido@colegio.edu.pe"
+                    aria-invalid={Boolean(errors.email)}
+                    aria-describedby={errors.email ? 'email-error' : undefined}
+                    className={CONTROL_CLASS}
                   />
                 </Field>
-              )}
-            </Section>
+
+                <Field
+                  id="phone"
+                  label="Teléfono"
+                  error={errors.phone}
+                  required
+                  hint="9 dígitos, empezando por 9. Es la vía de aviso al apoderado."
+                >
+                  <Input
+                    id="phone"
+                    inputMode="numeric"
+                    value={values.phone}
+                    onChange={(event) =>
+                      setField('phone', event.target.value.replace(/\D/g, '').slice(0, 9))
+                    }
+                    placeholder="987654321"
+                    aria-invalid={Boolean(errors.phone)}
+                    aria-describedby={errors.phone ? 'phone-error' : undefined}
+                    className={cn(CONTROL_CLASS, 'tabular-nums')}
+                  />
+                </Field>
+
+                <Field id="address" label="Dirección" className="sm:col-span-2">
+                  <Input
+                    id="address"
+                    value={values.address}
+                    onChange={(event) => setField('address', event.target.value)}
+                    placeholder="Av. Los Héroes 123"
+                    className={CONTROL_CLASS}
+                  />
+                </Field>
+              </FieldGrid>
+            </DialogShellSection>
+          )}
+
+          {meta.hasClassroom && (
+            <DialogShellSection
+              title={isStudent ? 'Aula asignada' : 'Aula que tutela'}
+              icon={GraduationCap}
+            >
+              <FieldGrid>
+                <Field
+                  id="level"
+                  label="Nivel educativo"
+                  error={errors.level}
+                  required={isStudent}
+                >
+                  <Select value={values.level} onValueChange={changeLevel}>
+                    <SelectTrigger id="level" className={CONTROL_CLASS}>
+                      <SelectValue placeholder="Sin asignar" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      {LEVEL_OPTIONS.map((level) => (
+                        <SelectItem key={level} value={level} className="h-10 text-base">
+                          {level}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+
+                <Field
+                  id="grade"
+                  label="Grado"
+                  error={errors.grade}
+                  required={isStudent}
+                  hint={values.level === NONE ? 'Elige primero el nivel.' : undefined}
+                >
+                  <Select
+                    value={values.grade}
+                    onValueChange={changeGrade}
+                    disabled={values.level === NONE}
+                  >
+                    <SelectTrigger id="grade" className={CONTROL_CLASS}>
+                      <SelectValue placeholder="Sin asignar" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      {gradeOptions.map((grade) => (
+                        <SelectItem key={grade} value={grade} className="h-10 text-base">
+                          {grade}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+
+                <Field
+                  id="section"
+                  label="Sección"
+                  error={errors.section}
+                  required={isStudent}
+                  hint={values.grade === NONE ? 'Elige primero el grado.' : undefined}
+                >
+                  <Select
+                    value={values.section}
+                    onValueChange={(value) => setField('section', value)}
+                    disabled={values.grade === NONE}
+                  >
+                    <SelectTrigger id="section" className={CONTROL_CLASS}>
+                      <SelectValue placeholder="Sin asignar" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      {sectionOptions.map((section) => (
+                        <SelectItem key={section} value={section} className="h-10 text-base">
+                          {section}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+
+                {values.role === 'Docente' && (
+                  <Field id="subject" label="Curso que dicta">
+                    <Input
+                      id="subject"
+                      value={values.subject}
+                      onChange={(event) => setField('subject', event.target.value)}
+                      placeholder="Ej: Matemática"
+                      className={CONTROL_CLASS}
+                    />
+                  </Field>
+                )}
+              </FieldGrid>
+            </DialogShellSection>
           )}
 
           {values.role === 'Administrativo' && (
-            <Section title="Puesto">
-              <Field id="position" label="Cargo" className="sm:col-span-2">
-                <Input
-                  id="position"
-                  value={values.position}
-                  onChange={(event) => setField('position', event.target.value)}
-                  placeholder="Ej: Secretaría"
-                  className="h-11 rounded-xl text-base"
-                />
-              </Field>
-            </Section>
+            <DialogShellSection title="Puesto" icon={ShieldCheck}>
+              <FieldGrid>
+                <Field id="position" label="Cargo" className="sm:col-span-2">
+                  <Select value={values.position} onValueChange={(value) => setField('position', value)}>
+                    <SelectTrigger id="position" className={CONTROL_CLASS}>
+                      <SelectValue placeholder="Selecciona un cargo" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      {ADMINISTRATIVE_POSITIONS.map((position) => (
+                        <SelectItem key={position} value={position} className="h-10 text-base">
+                          {position}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </FieldGrid>
+            </DialogShellSection>
           )}
-        </div>
+
+          {extraSections}
+        </DialogShellBody>
 
         <DialogShellFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onClose}
-            className="h-12 rounded-xl px-6 text-base font-semibold"
-          >
-            Cancelar
-          </Button>
-          <Button type="submit" className="h-12 rounded-xl px-8 text-base font-semibold">
-            {isEditing ? 'Guardar cambios' : 'Crear usuario'}
+          <DialogShellCancelButton onClick={onClose}>{cancelLabel}</DialogShellCancelButton>
+          <Button type="submit" className={DIALOG_ACTION_CLASS}>
+            {submitLabel ?? (isEditing ? 'Guardar cambios' : 'Crear usuario')}
           </Button>
         </DialogShellFooter>
       </form>
@@ -480,7 +549,7 @@ const UserFormBody: React.FC<Omit<UserFormDialogProps, 'open'>> = ({
 
 export const UserFormDialog: React.FC<UserFormDialogProps> = ({ open, onClose, ...rest }) => (
   <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-    <DialogShellContent size="md" height="fixed">
+    <DialogShellContent>
       <UserFormBody onClose={onClose} {...rest} />
     </DialogShellContent>
   </Dialog>

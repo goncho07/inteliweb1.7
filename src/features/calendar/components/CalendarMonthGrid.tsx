@@ -12,19 +12,18 @@ const WEEKEND_INDEXES = new Set([5, 6]);
 const MAX_CHIPS_PER_DAY = 2;
 
 /**
- * Cuadrícula mensual (o semanal) del calendario general, con el mismo
- * lenguaje visual que usaba el calendario de Citaciones: celdas de día con número
- * circular, chips de evento por color/tipo, altura de fila ajustada a las
- * semanas reales del mes y una leyenda de tipos al pie.
+ * Cuadrícula mensual del calendario general —la única vista del módulo—, con
+ * el mismo lenguaje visual que usaba el calendario de Citaciones: celdas de
+ * día con número circular, chips de evento por color/tipo, altura de fila
+ * ajustada a las semanas reales del mes y una leyenda de tipos al pie.
  */
 export const CalendarMonthGrid: React.FC<{
   currentMonthIndex: number;
   currentYear: number;
-  viewMode: 'mes' | 'semana';
   selectedDay: number | null;
   onDayClick: (day: number) => void;
   eventsForDay: (day: number) => CalendarEvent[];
-}> = ({ currentMonthIndex, currentYear, viewMode, selectedDay, onDayClick, eventsForDay }) => {
+}> = ({ currentMonthIndex, currentYear, selectedDay, onDayClick, eventsForDay }) => {
   const daysInMonth = new Date(currentYear, currentMonthIndex + 1, 0).getDate();
   const rawFirstDayIndex = new Date(currentYear, currentMonthIndex, 1).getDay();
   const firstDayIndex = rawFirstDayIndex === 0 ? 6 : rawFirstDayIndex - 1;
@@ -38,16 +37,10 @@ export const CalendarMonthGrid: React.FC<{
   const monthLabel = new Date(currentYear, currentMonthIndex, 1).toLocaleDateString('es-ES', { month: 'long' });
   const today = new Date();
 
-  // Vista semana: solo se pinta la fila que contiene el día seleccionado.
-  const selectedRow =
-    viewMode === 'semana' && selectedDay !== null ? Math.floor((firstDayIndex + selectedDay - 1) / 7) : null;
-  const displayedCells = selectedRow !== null ? calendarCells.slice(selectedRow * 7, selectedRow * 7 + 7) : calendarCells;
-  const rowCount = selectedRow !== null ? 1 : weeksInMonth;
-
   return (
-    <div className="flex flex-col gap-6">
-      <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800/60">
-        <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800/60">
+    <div className="flex h-full min-h-0 flex-1 flex-col">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-white dark:bg-slate-900">
+        <div className="grid shrink-0 grid-cols-7 border-b border-slate-200 dark:border-slate-800/60">
           {WEEKDAY_LABELS.map((label, i) => (
             <div
               key={label}
@@ -62,10 +55,10 @@ export const CalendarMonthGrid: React.FC<{
         </div>
 
         <div
-          className="grid grid-cols-7 gap-px bg-slate-200 dark:bg-slate-800/60"
-          style={{ gridTemplateRows: `repeat(${rowCount}, minmax(88px, 1fr))` }}
+          className="grid min-h-0 flex-1 grid-cols-7 gap-px bg-slate-200 dark:bg-slate-800/60"
+          style={{ gridTemplateRows: `repeat(${weeksInMonth}, minmax(88px, 1fr))` }}
         >
-          {displayedCells.map((day, i) => {
+          {calendarCells.map((day, i) => {
             if (day === null) {
               return <div key={i} className="bg-white dark:bg-slate-900" />;
             }
@@ -121,7 +114,9 @@ export const CalendarMonthGrid: React.FC<{
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-2xl border border-slate-100 bg-white px-4 py-3 dark:border-slate-800/60 dark:bg-slate-900">
+      {/* Leyenda anclada al pie del panel, como la paginación de Usuarios:
+          barra a sangre con borde superior, no una tarjeta suelta. */}
+      <div className="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-2 border-t border-slate-200 bg-white px-6 py-3 dark:border-slate-800/60 dark:bg-slate-900">
         <span className="text-xs font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Eventos</span>
         {EVENT_TYPE_OPTIONS.map((option) => (
           <div key={option.value} className="flex items-center gap-1.5">

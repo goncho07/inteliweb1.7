@@ -17,10 +17,7 @@ import { GenerateCarnetsDialog } from '@/features/users/components/GenerateCarne
 import { ImportUsersDialog } from '@/features/users/components/ImportUsersDialog';
 import { RoleFilterPanel } from '@/features/users/components/RoleFilterPanel';
 import { TeacherScheduleDialog } from '@/features/users/components/TeacherScheduleDialog';
-import {
-  UserDetailsDialog,
-  type UserDetailTab,
-} from '@/features/users/components/UserDetailsDialog';
+import { UserDetailsDialog } from '@/features/users/components/UserDetailsDialog';
 import { UserFormDialog } from '@/features/users/components/UserFormDialog';
 import { UsersTable } from '@/features/users/components/UsersTable';
 import { UsersToolbar } from '@/features/users/components/UsersToolbar';
@@ -46,7 +43,7 @@ import type { ModuleProps, UserItem } from '@/types';
 type OpenDialog =
   | { kind: 'none' }
   | { kind: 'form'; user: UserItem | null }
-  | { kind: 'details'; user: UserItem; tab: UserDetailTab }
+  | { kind: 'details'; user: UserItem }
   | { kind: 'delete'; users: UserItem[] }
   | { kind: 'schedule'; teacher: UserItem }
   | { kind: 'carnets' }
@@ -62,14 +59,40 @@ export const UsersModule: React.FC<ModuleProps> = () => {
 
   const meta = ROLE_META[filters.role];
 
+  /**
+   * Guarda los cambios de una ficha sin cerrar su ventana: al volver a la
+   * vista de lectura, los datos que se ven ya son los nuevos.
+   */
+  const handleSaveUser = (user: UserItem, values: UserFormValues) => {
+    directory.updateUser(user.id, values);
+    toast({
+      title: 'Cambios guardados',
+      description: `Se actualizaron los datos de ${values.name.trim()}.`,
+    });
+  };
+
+  const handleLinkGuardian = (student: UserItem, guardian: UserItem) => {
+    directory.linkGuardian(student.id, guardian.id);
+    toast({
+      title: 'Apoderado vinculado',
+      description: `${guardian.name} ya figura como apoderado de ${student.name}.`,
+    });
+  };
+
+  const handleUpdatePhoto = (user: UserItem, photoUrl: string | undefined) => {
+    directory.updatePhoto(user.id, photoUrl);
+    toast({
+      title: photoUrl ? 'Foto actualizada' : 'Foto eliminada',
+      description: photoUrl
+        ? `Se actualizó la foto de ${user.name}.`
+        : `Se quitó la foto de ${user.name}.`,
+    });
+  };
+
   const handleSubmitForm = (values: UserFormValues) => {
     const editing = dialog.kind === 'form' ? dialog.user : null;
     if (editing) {
-      directory.updateUser(editing.id, values);
-      toast({
-        title: 'Cambios guardados',
-        description: `Se actualizaron los datos de ${values.name.trim()}.`,
-      });
+      handleSaveUser(editing, values);
     } else {
       directory.createUser(values);
       toast({
@@ -188,8 +211,7 @@ export const UsersModule: React.FC<ModuleProps> = () => {
             <UsersTable
               filters={filters}
               activeUserId={dialog.kind === 'details' ? dialog.user.id : null}
-              onView={(user) => setDialog({ kind: 'details', user, tab: 'personal' })}
-              onEdit={(user) => setDialog({ kind: 'form', user })}
+              onView={(user) => setDialog({ kind: 'details', user })}
               onDelete={(user) => setDialog({ kind: 'delete', users: [user] })}
               onDownloadCarnet={(user) => void handleDownloadCarnet(user)}
               onViewSchedule={(teacher) => setDialog({ kind: 'schedule', teacher })}
@@ -207,14 +229,23 @@ export const UsersModule: React.FC<ModuleProps> = () => {
           onSubmit={handleSubmitForm}
         />
 
+        {/* La ficha se lee del padrón por `id`, no de la copia guardada al
+            abrirla: así, tras guardar sin cerrar la ventana, lo que se ve son
+            ya los datos nuevos. */}
         <UserDetailsDialog
           open={dialog.kind === 'details'}
-          user={dialog.kind === 'details' ? dialog.user : null}
+          user={
+            dialog.kind === 'details'
+              ? (directory.users.find((item) => item.id === dialog.user.id) ?? dialog.user)
+              : null
+          }
           users={directory.users}
-          initialTab={dialog.kind === 'details' ? dialog.tab : 'personal'}
+          existingDnis={directory.existingDnis}
           onClose={closeDialog}
-          onEdit={(user) => setDialog({ kind: 'form', user })}
-          onOpenRelated={(user) => setDialog({ kind: 'details', user, tab: 'personal' })}
+          onSave={handleSaveUser}
+          onOpenRelated={(user) => setDialog({ kind: 'details', user })}
+          onLinkGuardian={handleLinkGuardian}
+          onUpdatePhoto={handleUpdatePhoto}
         />
 
         <DeleteUsersDialog

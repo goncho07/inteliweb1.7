@@ -1,5 +1,4 @@
 import React from 'react';
-import { CheckCheck } from 'lucide-react';
 
 import { formatRelativeTimestamp } from '@/lib/formatRelativeDate';
 import { cn } from '@/lib/utils';
@@ -9,7 +8,6 @@ import { CitationCategoryBadge } from './CitationCategoryBadge';
 import { CitationStatusBadge } from './CitationStatusBadge';
 import { CitationUnreadBadge } from './CitationUnreadBadge';
 import { isParentOnline, parseCitationDateTime } from '../citations.constants';
-import { getReadState } from '../citations.messages';
 import type { Citation } from '../types';
 
 /** Fila de la lista de citaciones (columna izquierda). Selecciona la citación al hacer clic. */
@@ -20,7 +18,6 @@ export const CitationListItem: React.FC<{
   onSelect: () => void;
 }> = ({ citation: c, isSelected, unreadCount = 0, onSelect }) => {
   const online = isParentOnline(c);
-  const readState = getReadState(c.id);
 
   return (
     <button
@@ -45,7 +42,7 @@ export const CitationListItem: React.FC<{
           </h4>
 
           {/* Apoderado con quien se coordina y su vínculo con el alumno */}
-          <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+          <p className="truncate text-sm text-slate-500 dark:text-slate-400">
             {c.parent} · {c.relationship}
           </p>
 
@@ -61,22 +58,13 @@ export const CitationListItem: React.FC<{
           <span className="text-xs text-slate-500 dark:text-slate-400">
             {formatRelativeTimestamp(parseCitationDateTime(c))}
           </span>
-          {/* Doble check del último mensaje que envió el colegio, igual que en la conversación */}
-          {readState !== 'ninguno' && (
-            <CheckCheck
-              className={cn(
-                'h-4 w-4',
-                readState === 'leido' ? 'text-accent' : 'text-slate-400 dark:text-slate-500',
-              )}
-              strokeWidth={2}
-              role="img"
-              aria-label={
-                readState === 'leido'
-                  ? 'Último mensaje leído por el apoderado'
-                  : 'Último mensaje entregado, aún no leído'
-              }
-            />
-          )}
+          {/*
+            El estado de lectura (entregado / leído) no se muestra aquí: en una
+            fila de lista es un icono de 16px sin etiqueta cuyo significado hay
+            que adivinar. Vive donde tiene contexto, en la burbuja del mensaje
+            de la conversación (`CitationConversationTab`). Lo que sí queda es
+            el contador de mensajes sin leer, que sí es información de la fila.
+          */}
           <CitationUnreadBadge count={unreadCount} />
         </div>
       </div>

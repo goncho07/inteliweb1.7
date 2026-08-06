@@ -33,7 +33,6 @@ export type UserStatus =
 
 export interface UserItem {
   id: string;
-  code?: string;
   name: string;
   dni: string;
   role: UserRole;
@@ -48,7 +47,7 @@ export interface UserItem {
   address?: string;
   /** Fecha de nacimiento en ISO (`AAAA-MM-DD`), el formato que espera `<input type="date">`. */
   birthDate?: string;
-  /** Solo Estudiante: código modular del SIAGIE (14 dígitos). */
+  /** Solo Estudiante: código del estudiante asignado por el SIAGIE (14 dígitos). */
   modularCode?: string;
   /** Solo Docente: curso principal que dicta. */
   subject?: string;
@@ -62,6 +61,11 @@ export interface UserItem {
   childrenIds?: string[];
   /** Solo Estudiante: ids de sus apoderados en `MOCK_USERS`. */
   guardianIds?: string[];
+  /**
+   * Solo Estudiante: foto subida por el centro (data URL), guardada en
+   * memoria — sin backend. Ausente = icono gris por defecto.
+   */
+  photoUrl?: string;
 }
 
 export interface IncidentType {

@@ -1,17 +1,19 @@
 import React from 'react';
-import { CalendarDays, Clock } from 'lucide-react';
+import { CalendarDays, FileText } from 'lucide-react';
 
 import { CustomCalendar } from '@/components/calendar/CustomCalendar';
+import { CustomTimePicker } from '@/components/calendar/CustomTimePicker';
 import {
+  DialogShellActionButton,
   DialogShellBody,
+  DialogShellCancelButton,
   DialogShellContent,
   DialogShellFooter,
   DialogShellHeader,
+  DialogShellSection,
 } from '@/components/common/DialogShell';
-import { Button } from '@/components/ui/button';
+import { Field, FieldGrid } from '@/components/common/FormField';
 import { Dialog } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
 import type { Citation } from '../types';
@@ -42,79 +44,53 @@ export const RescheduleCitationModal: React.FC<{
 }) => {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogShellContent size="sm">
+      <DialogShellContent>
         <DialogShellHeader
           icon={CalendarDays}
           title="Reprogramar citación"
           description={citation ? `${citation.student} · ${citation.reason}` : undefined}
         />
 
-        <DialogShellBody>
-          <div className="flex flex-col gap-2">
-            <Label
-              htmlFor="reschedule-date"
-              className="text-sm font-semibold text-slate-700 dark:text-slate-300"
-            >
-              Nueva fecha
-            </Label>
-            <CustomCalendar
-              mode="date"
-              value={reschedDate}
-              onChange={onRescheduleDateChange}
-              placeholder="Seleccionar fecha"
-            />
-          </div>
+        <DialogShellBody flush>
+          <DialogShellSection title="Nueva fecha y hora" icon={CalendarDays}>
+            <FieldGrid>
+              <Field id="reschedule-date" label="Fecha" required>
+                <CustomCalendar
+                  mode="date"
+                  value={reschedDate}
+                  onChange={onRescheduleDateChange}
+                  placeholder="Seleccionar fecha"
+                />
+              </Field>
 
-          <div className="flex flex-col gap-2">
-            <Label
-              htmlFor="reschedule-time"
-              className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 dark:text-slate-300"
-            >
-              <Clock size={16} className="text-primary" /> Nueva hora
-            </Label>
-            <Input
-              id="reschedule-time"
-              type="time"
-              value={reschedTime}
-              onChange={(e) => onRescheduleTimeChange(e.target.value)}
-              className="h-11 rounded-xl text-base"
-            />
-          </div>
+              <Field id="reschedule-time" label="Hora" required>
+                <CustomTimePicker value={reschedTime} onChange={onRescheduleTimeChange} placeholder="Seleccionar hora" />
+              </Field>
+            </FieldGrid>
+          </DialogShellSection>
 
-          <div className="flex flex-col gap-2">
-            <Label
-              htmlFor="reschedule-reason"
-              className="text-sm font-semibold text-slate-700 dark:text-slate-300"
-            >
-              Motivo de reprogramación (opcional)
-            </Label>
-            <Textarea
+          <DialogShellSection title="Motivo del cambio" icon={FileText}>
+            <Field
               id="reschedule-reason"
-              value={reschedReason}
-              onChange={(e) => onRescheduleReasonChange(e.target.value)}
-              placeholder="Ej: Cruce de horarios con el padre de familia…"
-              className="h-20 resize-none rounded-xl text-base"
-            />
-          </div>
+              label="Motivo de reprogramación"
+              hint="Opcional. Queda registrado en el historial de la citación."
+            >
+              <Textarea
+                id="reschedule-reason"
+                value={reschedReason}
+                onChange={(e) => onRescheduleReasonChange(e.target.value)}
+                placeholder="Ej: Cruce de horarios con el padre de familia…"
+                className="min-h-[100px] resize-none rounded-xl text-base"
+              />
+            </Field>
+          </DialogShellSection>
         </DialogShellBody>
 
         <DialogShellFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onClose}
-            className="h-12 rounded-xl px-6 text-base font-semibold"
-          >
-            Cancelar
-          </Button>
-          <Button
-            type="button"
-            onClick={onConfirm}
-            disabled={!reschedDate || !reschedTime}
-            className="h-12 rounded-xl px-6 text-base font-semibold"
-          >
+          <DialogShellCancelButton onClick={onClose} />
+          <DialogShellActionButton onClick={onConfirm} disabled={!reschedDate || !reschedTime}>
             Guardar cambios
-          </Button>
+          </DialogShellActionButton>
         </DialogShellFooter>
       </DialogShellContent>
     </Dialog>

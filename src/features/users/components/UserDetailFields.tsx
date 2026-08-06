@@ -35,25 +35,6 @@ export const DataField: React.FC<{
   </div>
 );
 
-/** Bloque titulado dentro de una pestaña de la ficha. */
-export const DetailSection: React.FC<{
-  title: string;
-  icon: LucideIcon;
-  action?: React.ReactNode;
-  children: React.ReactNode;
-}> = ({ title, icon: Icon, action, children }) => (
-  <section className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
-    <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
-      <h3 className="flex items-center gap-3 text-base font-bold text-slate-900 dark:text-white">
-        <Icon size={20} className="text-slate-500 dark:text-slate-400" />
-        {title}
-      </h3>
-      {action}
-    </div>
-    <div className="bg-slate-50 p-4 dark:bg-slate-800/40">{children}</div>
-  </section>
-);
-
 /**
  * Fila de una persona vinculada (un apoderado en la ficha del alumno, un hijo
  * en la del apoderado). Abre su propia ficha en vez de duplicar aquí sus

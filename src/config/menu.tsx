@@ -1,5 +1,5 @@
 import { lazy } from 'react';
-import { BookOpen, CalendarDays, Home, Mail, Users } from 'lucide-react';
+import { BookOpen, CalendarCheck, CalendarDays, Home, Users } from 'lucide-react';
 
 import type { AppRole, MenuItemConfig } from '@/types';
 
@@ -63,7 +63,9 @@ export const MENU_CONFIG: MenuItemConfig[] = [
   {
     id: 'citations',
     label: 'Citaciones',
-    icon: Mail,
+    // Una citación escolar es una convocatoria a una reunión con el apoderado,
+    // no un correo: el sobre se leía como "mensajería".
+    icon: CalendarCheck,
     component: CitationsModule,
     roles: STAFF_ROLES,
   },

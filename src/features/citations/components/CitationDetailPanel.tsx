@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BookOpen, Calendar, Check, CheckCircle2, ChevronDown, Pencil, User, X } from 'lucide-react';
+import { BookOpen, Calendar, Check, CheckCircle2, ChevronDown, User, X } from 'lucide-react';
 
 import { ModulePaneHeader } from '@/components/layout/ModuleShell';
 import { Button } from '@/components/ui/button';
@@ -32,7 +32,6 @@ export const CitationDetailPanel: React.FC<{
   onApprove: (id: number) => void;
   onComplete: (id: number) => void;
   onOpenReschedule: (citation: Citation) => void;
-  onOpenEdit: (citation: Citation) => void;
   variant?: 'pane' | 'sheet';
 }> = ({
   citation,
@@ -40,13 +39,11 @@ export const CitationDetailPanel: React.FC<{
   onApprove,
   onComplete,
   onOpenReschedule,
-  onOpenEdit,
   variant = 'pane',
 }) => {
   const timeline = getCitationTimeline(citation);
   const parentOnline = isParentOnline(citation);
   const showActions = citation.status === 'Pendiente' || citation.status === 'Confirmada';
-  const showEdit = citation.status !== 'Completada' && citation.status !== 'Cancelada';
 
   // Colapsa el resumen al cambiar de citación, sin useEffect (ver "Adjusting
   // state when a prop changes" de React): se ajusta durante el render en vez
@@ -90,7 +87,8 @@ export const CitationDetailPanel: React.FC<{
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">{citation.reason}</p>
               {/* El alumno vive aquí, no en la cabecera: la cabecera es el contacto de WhatsApp */}
-              <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+              {/* Alumno, aula y cuándo es la reunión: contenido, no metadato — `text-sm`, no `text-xs` */}
+              <p className="truncate text-sm text-slate-500 dark:text-slate-400">
                 {citation.student} · {citation.grade} · {citation.date}, {citation.time}
               </p>
             </div>
@@ -110,7 +108,7 @@ export const CitationDetailPanel: React.FC<{
             </p>
 
             <span className="inline-flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-300">
-              <User className="h-4 w-4 text-slate-400 dark:text-slate-500" strokeWidth={2} />
+              <User className="h-4 w-4 text-slate-500 dark:text-slate-400" strokeWidth={2} />
               {citation.teacher} ({citation.subject})
             </span>
 
@@ -151,7 +149,7 @@ export const CitationDetailPanel: React.FC<{
                       className={cn(
                         'mt-2 break-words text-xs font-semibold',
                         step.state === 'current' && 'text-amber-700 dark:text-amber-400',
-                        step.state === 'upcoming' && 'text-slate-400 dark:text-slate-500',
+                        step.state === 'upcoming' && 'text-slate-500 dark:text-slate-400',
                         step.state === 'cancelled' && 'text-rose-700 dark:text-rose-400',
                         step.state === 'done' && 'text-slate-700 dark:text-slate-200',
                       )}
@@ -173,7 +171,7 @@ export const CitationDetailPanel: React.FC<{
       </div>
 
       {/* Acciones: siempre visibles */}
-      {showActions || showEdit ? (
+      {showActions ? (
         <div className="flex shrink-0 flex-wrap items-center gap-3 border-t border-slate-100 bg-slate-50 p-4 dark:border-slate-800/60 dark:bg-slate-800/40">
           {citation.status === 'Pendiente' && (
             <Button
@@ -185,19 +183,13 @@ export const CitationDetailPanel: React.FC<{
               Reprogramar citación
             </Button>
           )}
-          {showEdit && (
-            <Button variant="outline" className="h-12 flex-1 [&_svg]:size-4" onClick={() => onOpenEdit(citation)}>
-              <Pencil className="h-4 w-4" />
-              Editar citación
-            </Button>
-          )}
           {citation.status === 'Pendiente' && (
             <Button
               className="h-12 flex-1 bg-emerald-600 text-white hover:bg-emerald-700 [&_svg]:size-4"
               onClick={() => onApprove(citation.id)}
             >
               <CheckCircle2 className="h-4 w-4" />
-              Aprobar cita
+              Aprobar citación
             </Button>
           )}
           {citation.status === 'Confirmada' && (
@@ -206,7 +198,7 @@ export const CitationDetailPanel: React.FC<{
               onClick={() => onComplete(citation.id)}
             >
               <BookOpen className="h-4 w-4" />
-              Cita realizada
+              Citación realizada
             </Button>
           )}
         </div>

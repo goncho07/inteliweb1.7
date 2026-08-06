@@ -122,8 +122,8 @@ const FolderRow: React.FC<{
     className={cn(
       'h-10 w-full justify-between gap-2 rounded-lg px-3 text-left',
       selected
-        ? 'bg-blue-50 text-blue-700 hover:bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400'
-        : 'text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50',
+        ? 'bg-blue-50 text-blue-700 hover:bg-blue-50 hover:text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:text-blue-400'
+        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-slate-100',
     )}
   >
     <span className="flex min-w-0 items-center gap-2">

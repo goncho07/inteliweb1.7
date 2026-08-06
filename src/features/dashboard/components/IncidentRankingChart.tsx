@@ -32,10 +32,10 @@ export interface RankingVariant {
   /** Color de la barra — marca el dominio de la tarjeta (incidencias = rose, faltas = blue). */
   barColor: string;
   /**
-   * Las etiquetas de aula no repiten el nivel ("4°B", no "4° B Sec") porque
-   * ya se filtran por el selector "Nivel" del panel lateral — en su lugar se
-   * muestra el nivel como leyenda debajo del gráfico. Solo aplica a variantes
-   * de aulas: las de estudiante no tienen ese sufijo que compensar.
+   * Las etiquetas de aula no repiten el nivel ("4°B", no "4° B Sec") para no
+   * alargar el eje — en su lugar se muestra el nivel como leyenda debajo del
+   * gráfico. Solo aplica a variantes de aulas: las de estudiante no tienen
+   * ese sufijo que compensar.
    */
   showLevelLegend?: boolean;
 }
@@ -77,12 +77,16 @@ export const IncidentRankingChart: React.FC<IncidentRankingChartProps> = ({ vari
       className="h-full min-h-0"
       bodyClassName="flex flex-col"
       action={
-        <ChartToggleGroup
-          value={activeKey}
-          onChange={setActiveKey}
-          ariaLabel="Elegir ranking"
-          options={variants.map((variant) => ({ value: variant.key, label: variant.toggleLabel }))}
-        />
+        // Con una sola variante no hay nada que elegir: el selector sería un
+        // control de una sola opción, siempre marcada.
+        variants.length > 1 ? (
+          <ChartToggleGroup
+            value={activeKey}
+            onChange={setActiveKey}
+            ariaLabel="Elegir ranking"
+            options={variants.map((variant) => ({ value: variant.key, label: variant.toggleLabel }))}
+          />
+        ) : undefined
       }
     >
       {data.length === 0 ? (

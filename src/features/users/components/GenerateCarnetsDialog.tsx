@@ -1,15 +1,17 @@
 import React, { useMemo, useState } from 'react';
-import { AlertTriangle, Download, IdCard } from 'lucide-react';
+import { AlertTriangle, Download, Filter, IdCard } from 'lucide-react';
 
 import {
+  DialogShellActionButton,
   DialogShellBody,
+  DialogShellCancelButton,
   DialogShellContent,
   DialogShellFooter,
   DialogShellHeader,
+  DialogShellSection,
 } from '@/components/common/DialogShell';
 import { EmptyState } from '@/components/common/EmptyState';
 import { LabeledSelect } from '@/components/common/LabeledSelect';
-import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
 import { ALL, COURSES, LEVEL_OPTIONS, MAX_CARNET_CARDS } from '@/features/users/users.constants';
@@ -98,106 +100,102 @@ const GenerateCarnetsBody: React.FC<
         description={`Un carnet por estudiante y curso (${COURSES.length} cursos), en un único PDF.`}
       />
 
-      <DialogShellBody>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <LabeledSelect
-            id="carnet-nivel"
-            label="Nivel educativo"
-            value={level}
-            options={LEVEL_OPTIONS}
-            onChange={changeLevel}
-            disabled={isGenerating}
-            allValue={ALL}
-            allLabel="Todos los niveles"
-          />
-          <LabeledSelect
-            id="carnet-grado"
-            label="Grado"
-            value={grade}
-            options={gradesForLevel(level)}
-            onChange={changeGrade}
-            disabled={isGenerating || level === ALL}
-            allValue={ALL}
-            allLabel="Todos los grados"
-            hint={level === ALL ? 'Elige primero un nivel.' : undefined}
-          />
-          <LabeledSelect
-            id="carnet-seccion"
-            label="Sección"
-            value={section}
-            options={sectionsForGrade(level, grade)}
-            onChange={setSection}
-            disabled={isGenerating || grade === ALL}
-            allValue={ALL}
-            allLabel="Todas las secciones"
-            hint={grade === ALL ? 'Elige primero un grado.' : undefined}
-          />
-        </div>
-
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/40">
-          <p className="text-base text-slate-700 dark:text-slate-300">
-            <strong className="font-bold text-slate-900 dark:text-white">{students.length}</strong>{' '}
-            {students.length === 1 ? 'estudiante' : 'estudiantes'} ·{' '}
-            <strong className="font-bold text-slate-900 dark:text-white">{cards}</strong>{' '}
-            {cards === 1 ? 'carnet' : 'carnets'}
-          </p>
-        </div>
-
-        {students.length === 0 && (
-          <div role="alert">
-            <EmptyState
-              icon={IdCard}
-              title="No hay estudiantes con estos filtros"
-              description="Prueba con otro nivel, grado o sección."
-              className="min-h-[160px] rounded-2xl border border-dashed border-slate-200 dark:border-slate-800"
+      <DialogShellBody flush>
+        <DialogShellSection title="Qué aulas entran" icon={Filter}>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <LabeledSelect
+              id="carnet-nivel"
+              label="Nivel educativo"
+              value={level}
+              options={LEVEL_OPTIONS}
+              onChange={changeLevel}
+              disabled={isGenerating}
+              allValue={ALL}
+              allLabel="Todos los niveles"
+            />
+            <LabeledSelect
+              id="carnet-grado"
+              label="Grado"
+              value={grade}
+              options={gradesForLevel(level)}
+              onChange={changeGrade}
+              disabled={isGenerating || level === ALL}
+              allValue={ALL}
+              allLabel="Todos los grados"
+              hint={level === ALL ? 'Elige primero un nivel.' : undefined}
+            />
+            <LabeledSelect
+              id="carnet-seccion"
+              label="Sección"
+              value={section}
+              options={sectionsForGrade(level, grade)}
+              onChange={setSection}
+              disabled={isGenerating || grade === ALL}
+              allValue={ALL}
+              allLabel="Todas las secciones"
+              hint={grade === ALL ? 'Elige primero un grado.' : undefined}
             />
           </div>
-        )}
+        </DialogShellSection>
 
-        {isTooLarge && (
-          <div
-            role="alert"
-            className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20"
-          >
-            <AlertTriangle
-              size={20}
-              className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400"
-            />
+        <DialogShellSection title="Lo que se va a descargar" icon={IdCard}>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/40">
             <p className="text-base text-slate-700 dark:text-slate-300">
-              Son demasiados carnets para un solo PDF (el máximo son {MAX_CARNET_CARDS}). Acota el
-              lote eligiendo un grado o una sección.
+              <strong className="font-bold text-slate-900 dark:text-white">
+                {students.length}
+              </strong>{' '}
+              {students.length === 1 ? 'estudiante' : 'estudiantes'} ·{' '}
+              <strong className="font-bold text-slate-900 dark:text-white">{cards}</strong>{' '}
+              {cards === 1 ? 'carnet' : 'carnets'}
             </p>
           </div>
-        )}
 
-        {progress && (
-          <div className="flex flex-col gap-2" aria-live="polite">
-            <p className="text-base text-slate-700 dark:text-slate-300">
-              Generando carnet {progress.done} de {progress.total}…
-            </p>
-            <Progress value={progress.total === 0 ? 0 : (progress.done / progress.total) * 100} />
-          </div>
-        )}
+          {students.length === 0 && (
+            <div role="alert">
+              <EmptyState
+                icon={IdCard}
+                title="No hay estudiantes con estos filtros"
+                description="Prueba con otro nivel, grado o sección."
+                className="min-h-[160px] rounded-2xl border border-dashed border-slate-200 dark:border-slate-800"
+              />
+            </div>
+          )}
+
+          {isTooLarge && (
+            <div
+              role="alert"
+              className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20"
+            >
+              <AlertTriangle
+                size={20}
+                className="mt-0.5 shrink-0 text-amber-600 dark:text-amber-400"
+              />
+              <p className="text-base text-slate-700 dark:text-slate-300">
+                Son demasiados carnets para un solo PDF (el máximo son {MAX_CARNET_CARDS}). Acota el
+                lote eligiendo un grado o una sección.
+              </p>
+            </div>
+          )}
+
+          {progress && (
+            <div className="flex flex-col gap-2" aria-live="polite">
+              <p className="text-base text-slate-700 dark:text-slate-300">
+                Generando carnet {progress.done} de {progress.total}…
+              </p>
+              <Progress value={progress.total === 0 ? 0 : (progress.done / progress.total) * 100} />
+            </div>
+          )}
+        </DialogShellSection>
       </DialogShellBody>
 
       <DialogShellFooter>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onClose}
-          disabled={isGenerating}
-          className="h-12 rounded-xl px-6 text-base font-semibold"
-        >
-          Cancelar
-        </Button>
-        <Button
-          type="button"
+        <DialogShellCancelButton onClick={onClose} disabled={isGenerating} />
+        <DialogShellActionButton
           onClick={handleGenerate}
           disabled={students.length === 0 || isTooLarge || isGenerating}
-          className="h-12 gap-2 rounded-xl px-6 text-base font-semibold"
         >
           <Download size={20} /> {isGenerating ? 'Generando…' : 'Generar PDF'}
-        </Button>
+        </DialogShellActionButton>
       </DialogShellFooter>
     </>
   );
@@ -212,7 +210,7 @@ export const GenerateCarnetsDialog: React.FC<GenerateCarnetsDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && !isGenerating && onClose()}>
-      <DialogShellContent size="md" height="fixed">
+      <DialogShellContent>
         <GenerateCarnetsBody onClose={onClose} onGeneratingChange={setIsGenerating} {...rest} />
       </DialogShellContent>
     </Dialog>

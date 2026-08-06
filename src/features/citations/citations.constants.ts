@@ -1,4 +1,4 @@
-import { BookOpen, Briefcase, Tag, Users, type LucideIcon } from 'lucide-react';
+import { AlertTriangle, BookOpen, Briefcase, Tag, type LucideIcon } from 'lucide-react';
 
 import { EDUCATIONAL_STRUCTURE } from '@/data/education';
 import { pseudoRandom } from '@/lib/pseudoRandom';
@@ -56,9 +56,6 @@ export const STATUS_TABS: { label: string; value: CitationStatus | 'Todas' }[] =
   { label: 'Todas', value: 'Todas' },
   { label: 'Pendiente', value: 'Pendiente' },
   { label: 'Confirmada', value: 'Confirmada' },
-  { label: 'Reprogramada', value: 'Reprogramada' },
-  { label: 'Completada', value: 'Completada' },
-  { label: 'Cancelada', value: 'Cancelada' },
 ];
 
 export const LEVEL_OPTIONS = ['Primaria', 'Secundaria'] as const;
@@ -103,18 +100,38 @@ export const STATUS_ACCENT_CLASSES: Record<CitationStatus, string> = {
   Cancelada: 'bg-rose-500',
 };
 
-/** Color de la insignia de categoría, usada en el panel de detalle y en el drawer. */
+/**
+ * Insignia de categoría: **una gramática visual distinta a la del estado**.
+ *
+ * Estado y categoría son dos sistemas independientes (en qué punto va el
+ * trámite vs. de qué trata la citación) y aparecen juntos en la misma fila.
+ * Cuando ambos usaban color, colisionaban: "Cancelada" y "Incidencias" caían
+ * las dos en rosa, y "Reprogramada" y "Académico" las dos en azul — de un
+ * vistazo, que es como se escanea la lista, se confundían.
+ *
+ * La regla que los separa: **el color es del estado** (A4 de
+ * `DESIGN_SYSTEM.md`: emerald/amber/rose/azul, y ningún hue más), y la
+ * **categoría se distingue por icono** sobre un contorno neutro, sin relleno.
+ * Así el ojo lee "qué tan urgente" por color y "de qué trata" por forma, sin
+ * que un sistema pise al otro, y de paso ningún hue se sale del mapeo de A4.
+ */
 export const CATEGORY_BADGE_CLASSES: Record<CitationCategory, string> = {
-  Académico: 'text-blue-700 bg-blue-50 border-blue-200 dark:text-blue-400 dark:bg-blue-900/30 dark:border-blue-800',
-  Incidencias: 'text-rose-700 bg-rose-50 border-rose-200 dark:text-rose-400 dark:bg-rose-900/30 dark:border-rose-800',
-  Gestión: 'text-slate-700 bg-slate-100 border-slate-200 dark:text-slate-300 dark:bg-slate-800 dark:border-slate-700',
-  Otros: 'text-slate-700 bg-slate-100 border-slate-200 dark:text-slate-300 dark:bg-slate-800 dark:border-slate-700',
+  Académico: 'text-slate-700 bg-transparent border-slate-300 dark:text-slate-300 dark:bg-transparent dark:border-slate-600',
+  Incidencias: 'text-slate-700 bg-transparent border-slate-300 dark:text-slate-300 dark:bg-transparent dark:border-slate-600',
+  Gestión: 'text-slate-700 bg-transparent border-slate-300 dark:text-slate-300 dark:bg-transparent dark:border-slate-600',
+  Otros: 'text-slate-700 bg-transparent border-slate-300 dark:text-slate-300 dark:bg-transparent dark:border-slate-600',
 };
 
-/** Icono representativo de cada categoría, usado junto a su insignia. */
+/**
+ * Icono de cada categoría. Ahora que la insignia de categoría es neutra
+ * (ver `CATEGORY_BADGE_CLASSES`), el icono es lo único que la distingue de un
+ * vistazo, así que tiene que decir de verdad de qué trata: "Incidencias"
+ * usaba `Users` (dos personas), que se leía como "reunión", no como "algo
+ * pasó" — ahora es `AlertTriangle`.
+ */
 export const CATEGORY_ICONS: Record<CitationCategory, LucideIcon> = {
   Académico: BookOpen,
-  Incidencias: Users,
+  Incidencias: AlertTriangle,
   Gestión: Briefcase,
   Otros: Tag,
 };

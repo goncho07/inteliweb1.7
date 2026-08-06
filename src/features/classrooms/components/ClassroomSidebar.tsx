@@ -142,7 +142,10 @@ export const ClassroomSidebar: React.FC<{
                   />
 
                   {isGradeOpen && (
-                    <div className="flex flex-col gap-1 rounded-2xl border border-slate-100 bg-slate-50/60 p-2 dark:border-slate-800 dark:bg-slate-900/40">
+                    /* Sin caja ni relleno propio: las secciones y su lista de
+                       alumnos ocupan todo el ancho de la barra lateral en vez
+                       de quedar sangradas dentro de un recuadro. */
+                    <div className="flex flex-col gap-1">
                       {group.sections.map((section) => {
                         const classroom: ClassroomRef = {
                           level: levelGroup.level,
@@ -160,8 +163,8 @@ export const ClassroomSidebar: React.FC<{
                               className={cn(
                                 'h-12 w-full justify-between gap-3 rounded-xl px-3 text-left',
                                 isExpanded
-                                  ? 'bg-primary/10 text-primary hover:bg-primary/10'
-                                  : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800/50',
+                                  ? 'bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary'
+                                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-slate-100',
                               )}
                             >
                               <span className="flex min-w-0 items-center gap-3">
@@ -180,7 +183,7 @@ export const ClassroomSidebar: React.FC<{
                                 className={cn(
                                   'flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold',
                                   isExpanded
-                                    ? 'bg-primary/15 text-primary'
+                                    ? 'bg-primary text-primary-foreground'
                                     : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
                                 )}
                                 title={`${section.count} estudiantes`}

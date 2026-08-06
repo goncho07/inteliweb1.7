@@ -1,14 +1,5 @@
 /** Constantes del módulo de aulas. */
 
-export const COLORS = [
-  "#10b981",
-  "#f59e0b",
-  "#ef4444",
-  "#6366f1",
-  "#8b5cf6",
-  "#ec4899",
-];
-
 export const TEACHER_GRADES = ["1° Grado", "2° Grado", "3° Grado", "4° Grado", "5° Grado"];
 export const TEACHER_SECTIONS: Record<string, string[]> = {
   "1° Grado": ["A", "B", "C"],

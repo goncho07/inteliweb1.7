@@ -1,7 +1,8 @@
 import React from 'react';
-import { Mail, MessageSquare } from 'lucide-react';
+import { CalendarCheck, MessageSquare, Plus } from 'lucide-react';
 
 import { ModuleSidebar } from '@/components/layout/ModuleShell';
+import { Button } from '@/components/ui/button';
 
 import { CitationListItem } from './CitationListItem';
 import { CitationsFiltersBar } from './CitationsFiltersBar';
@@ -13,6 +14,7 @@ export const CitationsListPanel: React.FC<{
   activeCitationId: number | null;
   onSelectCitation: (id: number) => void;
   getUnreadCount?: (id: number) => number;
+  onDraftCitation: () => void;
   searchTerm: string;
   onSearchTermChange: (value: string) => void;
   selectedStatusTab: CitationStatusFilter;
@@ -25,22 +27,32 @@ export const CitationsListPanel: React.FC<{
   onSectionChange: (value: string) => void;
   selectedCategory: CitationCategoryFilter;
   onCategoryChange: (value: CitationCategoryFilter) => void;
-}> = ({ citations, activeCitationId, onSelectCitation, getUnreadCount, ...filterProps }) => {
+}> = ({ citations, activeCitationId, onSelectCitation, getUnreadCount, onDraftCitation, ...filterProps }) => {
   return (
     // El panel de detalle ya no se apila debajo en móvil (se abre como bottom
     // sheet aparte), así que aquí la lista ocupa todo el alto disponible en
     // lugar de quedarse recortada al `max-h-[45vh]` pensado para módulos
     // con panel apilado.
-    <ModuleSidebar title="Citaciones" icon={Mail} className="h-full max-h-none lg:h-auto">
+    <ModuleSidebar
+      title="Citaciones"
+      icon={CalendarCheck}
+      className="h-full max-h-none lg:h-auto"
+      actions={
+        <Button type="button" onClick={onDraftCitation} className="h-10 gap-2 rounded-xl px-3 text-sm font-semibold">
+          <Plus size={18} strokeWidth={2.5} />
+          Redactar
+        </Button>
+      }
+    >
       <CitationsFiltersBar {...filterProps} />
 
       {/* Lista */}
       <div className="hidden-scrollbar flex-1 overflow-y-auto">
         {citations.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-2 p-8 text-center text-slate-400 dark:text-slate-500">
+          <div className="flex flex-col items-center justify-center gap-2 p-8 text-center text-slate-500 dark:text-slate-400">
             <MessageSquare className="h-8 w-8" strokeWidth={2} />
             <p className="text-sm font-semibold">No hay citaciones con estos filtros</p>
-            <p className="text-xs text-slate-400 dark:text-slate-500">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
               Prueba a cambiar el estado, el nivel o el motivo seleccionados.
             </p>
           </div>

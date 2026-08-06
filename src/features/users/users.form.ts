@@ -32,8 +32,13 @@ export interface UserFormValues {
 
 export type UserFormErrors = Partial<Record<keyof UserFormValues, string>>;
 
-/** Valor vacío del selector de aula: el campo existe pero no se ha elegido nada. */
-export const NONE = 'sin-asignar';
+/**
+ * Valor vacío del selector de aula: el campo existe pero no se ha elegido
+ * nada. Cadena vacía a propósito — es lo que hace que el `Select` de Radix
+ * muestre su placeholder («Sin asignar») en vez de necesitar una opción
+ * seleccionable propia para ese estado.
+ */
+export const NONE = '';
 
 export const emptyUserForm = (role: UserRole): UserFormValues => ({
   name: '',
@@ -140,15 +145,27 @@ export const validateUserForm = (
     }
   }
 
-  if (!isValidEmail(values.email)) {
+  // El correo es opcional: muchos apoderados no tienen uno, y el colegio avisa
+  // por teléfono. Si se escribe, tiene que ser un correo de verdad.
+  if (values.email.trim() !== '' && !isValidEmail(values.email)) {
     errors.email = 'Escribe un correo válido, por ejemplo nombre@colegio.edu.pe';
   }
 
-  if (values.phone.trim() !== '' && !isValidPhone(values.phone)) {
+  // El teléfono es obligatorio salvo para el alumno, que no tiene su propio
+  // apartado de Contacto: la vía de aviso es el teléfono de su apoderado.
+  if (values.role !== 'Estudiante') {
+    if (values.phone.trim() === '') {
+      errors.phone = 'Escribe un teléfono de contacto.';
+    } else if (!isValidPhone(values.phone)) {
+      errors.phone = 'El teléfono debe tener 9 dígitos y empezar por 9.';
+    }
+  } else if (values.phone.trim() !== '' && !isValidPhone(values.phone)) {
     errors.phone = 'El teléfono debe tener 9 dígitos y empezar por 9.';
   }
 
-  if (values.birthDate !== '' && values.birthDate > new Date().toISOString().slice(0, 10)) {
+  if (values.birthDate === '') {
+    errors.birthDate = 'Indica la fecha de nacimiento.';
+  } else if (values.birthDate > new Date().toISOString().slice(0, 10)) {
     errors.birthDate = 'La fecha de nacimiento no puede ser posterior a hoy.';
   }
 
@@ -165,7 +182,7 @@ export const validateUserForm = (
       errors.section = 'Elige la sección del estudiante.';
     }
     if (values.modularCode.trim() !== '' && !/^\d{14}$/.test(values.modularCode.trim())) {
-      errors.modularCode = 'El código modular tiene 14 dígitos.';
+      errors.modularCode = 'El código del estudiante tiene 14 dígitos.';
     }
   }
 

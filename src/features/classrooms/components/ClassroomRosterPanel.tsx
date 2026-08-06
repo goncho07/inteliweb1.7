@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import { LayoutGrid, Search } from 'lucide-react';
+import { ClipboardList, Search } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { StudentAvatar } from '@/components/common/StudentAvatar';
-import { MOCK_USERS } from '@/data/users';
+import { studentsInClassroom } from '@/data/users';
 import type { ClassroomRef } from '@/features/classrooms/types';
 import { cn } from '@/lib/utils';
 import { UserItem } from '@/types';
@@ -23,17 +23,7 @@ export const ClassroomRosterPanel: React.FC<{
   isOverviewOpen: boolean;
   onOpenOverview: () => void;
 }> = ({ classroom, selectedStudent, onSelectStudent, isOverviewOpen, onOpenOverview }) => {
-  const students = useMemo(
-    () =>
-      MOCK_USERS.filter(
-        (u) =>
-          u.role === 'Estudiante' &&
-          u.level === classroom.level &&
-          u.grade === classroom.grade &&
-          u.section === classroom.section,
-      ).sort((a, b) => a.name.localeCompare(b.name)),
-    [classroom],
-  );
+  const students = useMemo(() => studentsInClassroom(classroom), [classroom]);
 
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -43,7 +33,9 @@ export const ClassroomRosterPanel: React.FC<{
   );
 
   return (
-    <div className="space-y-2 border-t border-slate-100 p-2 dark:border-slate-800">
+    // Sin relleno lateral: el buscador, «Vista General» y la lista de alumnos
+    // ocupan todo el ancho de la barra lateral, igual que las filas de sección.
+    <div className="space-y-2 border-t border-slate-100 py-2 dark:border-slate-800">
       <div className="relative w-full">
         <Search
           size={16}
@@ -65,11 +57,11 @@ export const ClassroomRosterPanel: React.FC<{
         className={cn(
           'h-11 w-full justify-start gap-2 rounded-lg px-3 text-left',
           isOverviewOpen
-            ? 'bg-primary/10 text-primary hover:bg-primary/10'
-            : 'text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800/50',
+            ? 'bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary'
+            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800/50 dark:hover:text-slate-100',
         )}
       >
-        <LayoutGrid
+        <ClipboardList
           size={16}
           strokeWidth={2}
           className={cn('shrink-0', isOverviewOpen ? 'text-primary' : 'text-slate-400')}
@@ -90,14 +82,19 @@ export const ClassroomRosterPanel: React.FC<{
               type="button"
               variant="outline"
               onClick={() => onSelectStudent(student)}
+              // `variant="outline"` trae `hover:bg-accent`, y en Intelicole
+              // `accent` *es* el azul institucional: sin este `hover:bg-*`
+              // propio la fila se pintaba de azul sólido al pasar el ratón y
+              // el nombre —azul también— desaparecía. El hover es un gris
+              // suave, el mismo del resto de filas de la barra lateral.
               className={cn(
-                'h-auto w-full justify-start gap-2 rounded-lg border p-2 text-left group',
+                'group h-auto w-full justify-start gap-2 rounded-lg border p-2 text-left',
                 isSelected
-                  ? 'bg-primary/10 border-primary hover:bg-primary/10'
-                  : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 hover:border-primary/40',
+                  ? 'border-primary bg-primary/10 hover:bg-primary/10'
+                  : 'border-slate-100 bg-white hover:border-primary/40 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700/60',
               )}
             >
-              <StudentAvatar className="h-9 w-9" />
+              <StudentAvatar className="h-9 w-9" photoUrl={student.photoUrl} name={student.name} />
               <span
                 className={cn(
                   'truncate text-sm font-semibold leading-snug',

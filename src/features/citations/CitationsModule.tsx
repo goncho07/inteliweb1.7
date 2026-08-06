@@ -1,21 +1,28 @@
 import React, { useMemo, useState } from 'react';
-import { Mail } from 'lucide-react';
+import { CalendarCheck } from 'lucide-react';
 
 import { ModulePane, ModuleShell } from '@/components/layout/ModuleShell';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { MOCK_USERS } from '@/data/users';
 import { useSession } from '@/features/auth/SessionContext';
-import { visibleCitations } from '@/features/auth/scope';
+import { visibleCitations, visibleStudents } from '@/features/auth/scope';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { useToast } from '@/hooks/use-toast';
 import type { ModuleProps } from '@/types';
 
 import { CitationDetailPanel } from './components/CitationDetailPanel';
 import { CitationsListPanel } from './components/CitationsListPanel';
-import { EditCitationModal } from './components/EditCitationModal';
+import {
+  DraftCitationModal,
+  formatGuardianPhone,
+  formatStudentGrade,
+  guardianRelationship,
+  type DraftCitationResult,
+} from './components/DraftCitationModal';
 import { RescheduleCitationModal } from './components/RescheduleCitationModal';
 import { INITIAL_CITATIONS } from './citations.constants';
 import { getUnreadCount, MESSAGES_BY_CITATION } from './citations.messages';
-import type { Citation, CitationCategory, CitationCategoryFilter, CitationStatusFilter } from './types';
+import type { Citation, CitationCategoryFilter, CitationStatusFilter } from './types';
 
 /** El detalle se muestra como bottom sheet por debajo de este ancho (mismo criterio que `ModuleShell` para pasar a fila). */
 const DESKTOP_BREAKPOINT = '(min-width: 1024px)';
@@ -58,14 +65,14 @@ export const CitationsModule: React.FC<ModuleProps> = () => {
   const [reschedTime, setReschedTime] = useState('');
   const [reschedReason, setReschedReason] = useState('');
 
-  // Modal de edición
-  const [editModal, setEditModal] = useState<{ isOpen: boolean; citation: Citation | null }>({
-    isOpen: false,
-    citation: null,
-  });
-  const [editReason, setEditReason] = useState('');
-  const [editCategory, setEditCategory] = useState<CitationCategory>('Académico');
-  const [editDescription, setEditDescription] = useState('');
+  // Modal de redacción (asistente de 4 pasos para crear una citación nueva)
+  const [isDraftModalOpen, setIsDraftModalOpen] = useState(false);
+  // Todo el padrón visible para esta sesión: el listado del asistente debe
+  // ser la nómina real del aula elegida, alumno por alumno. `linkGuardians`
+  // (`data/users.ts`) solo asocia 100 apoderados de muestra al azar, así que
+  // no todos tienen uno — el propio asistente lo avisa al elegir a un alumno
+  // sin apoderado en vez de ocultarlo de la lista.
+  const draftableStudents = useMemo(() => visibleStudents(session), [session]);
 
   const filteredCitations = useMemo(() => {
     return citationsList.filter((c) => {
@@ -153,30 +160,35 @@ export const CitationsModule: React.FC<ModuleProps> = () => {
     setRescheduleModal({ isOpen: false, citation: null });
   };
 
-  const openEdit = (citation: Citation) => {
-    setIsMobileSheetOpen(false);
-    setEditReason(citation.reason);
-    setEditCategory(citation.category);
-    setEditDescription(citation.description);
-    setEditModal({ isOpen: true, citation });
-  };
+  const handleDraftCitation = (draft: DraftCitationResult) => {
+    const newId = Math.max(0, ...citationsList.map((c) => c.id)) + 1;
+    const newCitation: Citation = {
+      id: newId,
+      student: draft.student.name,
+      parent: draft.guardian.name,
+      relationship: guardianRelationship(draft.guardian),
+      parentPhone: formatGuardianPhone(draft.guardian.phone),
+      grade: formatStudentGrade(draft.student),
+      level: (draft.student.level as Citation['level']) ?? 'Primaria',
+      reason: draft.reason,
+      description: draft.description,
+      category: draft.category,
+      date: draft.date,
+      time: draft.time,
+      status: 'Pendiente',
+      teacher: session.user.name,
+      subject: session.user.subject ?? session.user.position ?? 'Dirección',
+      ...(draft.incidents && draft.incidents.length > 0 ? { incidents: draft.incidents } : {}),
+    };
 
-  const handleEditSave = () => {
-    if (!editModal.citation) return;
-    const citationId = editModal.citation.id;
-    setCitationsList((prev) =>
-      prev.map((c) =>
-        c.id === citationId
-          ? { ...c, reason: editReason.trim(), category: editCategory, description: editDescription.trim() }
-          : c,
-      ),
-    );
+    setCitationsList((prev) => [newCitation, ...prev]);
+    setSelectedCitationId(newId);
+    setIsDraftModalOpen(false);
     toast({
-      title: 'Citación editada',
-      description: 'Los cambios se guardaron correctamente.',
+      title: 'Citación creada',
+      description: `Se registró la citación de ${newCitation.parent} correctamente.`,
       variant: 'success',
     });
-    setEditModal({ isOpen: false, citation: null });
   };
 
   return (
@@ -186,6 +198,7 @@ export const CitationsModule: React.FC<ModuleProps> = () => {
         activeCitationId={activeCitationId}
         onSelectCitation={handleSelectCitation}
         getUnreadCount={getDisplayedUnreadCount}
+        onDraftCitation={() => setIsDraftModalOpen(true)}
         searchTerm={searchTerm}
         onSearchTermChange={setSearchTerm}
         selectedStatusTab={selectedStatusTab}
@@ -209,13 +222,12 @@ export const CitationsModule: React.FC<ModuleProps> = () => {
             onApprove={(id) => updateCitationStatus(id, 'Confirmada')}
             onComplete={(id) => updateCitationStatus(id, 'Completada')}
             onOpenReschedule={openReschedule}
-            onOpenEdit={openEdit}
           />
         ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-2 p-8 text-center text-slate-400 dark:text-slate-500">
-            <Mail className="h-8 w-8" strokeWidth={2} />
+          <div className="flex h-full flex-col items-center justify-center gap-2 p-8 text-center text-slate-500 dark:text-slate-400">
+            <CalendarCheck className="h-8 w-8" strokeWidth={2} />
             <p className="text-sm font-semibold">No hay citaciones con estos filtros</p>
-            <p className="max-w-xs text-sm text-slate-400 dark:text-slate-500">
+            <p className="max-w-xs text-sm text-slate-500 dark:text-slate-400">
               Prueba a cambiar el estado, el nivel o el motivo seleccionados.
             </p>
           </div>
@@ -234,7 +246,6 @@ export const CitationsModule: React.FC<ModuleProps> = () => {
               onApprove={(id) => updateCitationStatus(id, 'Confirmada')}
               onComplete={(id) => updateCitationStatus(id, 'Completada')}
               onOpenReschedule={openReschedule}
-              onOpenEdit={openEdit}
             />
           )}
         </SheetContent>
@@ -253,17 +264,12 @@ export const CitationsModule: React.FC<ModuleProps> = () => {
         onConfirm={handleReschedule}
       />
 
-      <EditCitationModal
-        isOpen={editModal.isOpen}
-        citation={editModal.citation}
-        editReason={editReason}
-        onEditReasonChange={setEditReason}
-        editCategory={editCategory}
-        onEditCategoryChange={setEditCategory}
-        editDescription={editDescription}
-        onEditDescriptionChange={setEditDescription}
-        onClose={() => setEditModal({ isOpen: false, citation: null })}
-        onConfirm={handleEditSave}
+      <DraftCitationModal
+        isOpen={isDraftModalOpen}
+        onClose={() => setIsDraftModalOpen(false)}
+        students={draftableStudents}
+        allUsers={MOCK_USERS}
+        onConfirm={handleDraftCitation}
       />
     </ModuleShell>
   );

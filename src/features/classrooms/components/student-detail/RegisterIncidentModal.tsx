@@ -1,16 +1,18 @@
 import React from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, FileText } from 'lucide-react';
 
 import {
+  DialogShellActionButton,
   DialogShellBody,
+  DialogShellCancelButton,
   DialogShellContent,
   DialogShellFooter,
   DialogShellHeader,
+  DialogShellSection,
 } from '@/components/common/DialogShell';
+import { Field } from '@/components/common/FormField';
 import { LabeledSelect } from '@/components/common/LabeledSelect';
-import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { UserItem } from '@/types';
 
@@ -41,9 +43,11 @@ export const RegisterIncidentModal: React.FC<{
   student: UserItem;
   incidentForm: IncidentFormState;
   setIncidentForm: React.Dispatch<React.SetStateAction<IncidentFormState>>;
-}> = ({ isOpen, onClose, student, incidentForm, setIncidentForm }) => (
+  /** Guarda la incidencia. Obligatorio: el pie no puede tener un botón que no hace nada. */
+  onRegister: () => void;
+}> = ({ isOpen, onClose, student, incidentForm, setIncidentForm, onRegister }) => (
   <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-    <DialogShellContent size="sm">
+    <DialogShellContent>
       <DialogShellHeader
         icon={AlertTriangle}
         tone="destructive"
@@ -51,52 +55,42 @@ export const RegisterIncidentModal: React.FC<{
         description={`${student.name} · ${student.grade.replace('° Grado', '')}° ${student.section}`}
       />
 
-      <DialogShellBody>
-        <LabeledSelect
-          id="incidencia-tipo"
-          label="Tipo de incidencia"
-          value={incidentForm.type}
-          options={INCIDENT_OPTIONS}
-          onChange={(type) => setIncidentForm((prev) => ({ ...prev, type }))}
-          placeholder="Elige el tipo de incidencia"
-        />
-
-        <div className="flex flex-col gap-2">
-          <Label
-            htmlFor="incidencia-descripcion"
-            className="text-sm font-semibold text-slate-700 dark:text-slate-300"
-          >
-            Descripción detallada
-          </Label>
-          <Textarea
-            id="incidencia-descripcion"
-            value={incidentForm.description}
-            onChange={(event) =>
-              setIncidentForm((prev) => ({ ...prev, description: event.target.value }))
-            }
-            placeholder="Describa el suceso ocurrido…"
-            className="min-h-[120px] resize-none rounded-xl text-base"
+      <DialogShellBody flush>
+        <DialogShellSection title="Qué ocurrió" icon={AlertTriangle}>
+          <LabeledSelect
+            id="incidencia-tipo"
+            label="Tipo de incidencia"
+            value={incidentForm.type}
+            options={INCIDENT_OPTIONS}
+            onChange={(type) => setIncidentForm((prev) => ({ ...prev, type }))}
+            placeholder="Elige el tipo de incidencia"
           />
-        </div>
+        </DialogShellSection>
+
+        <DialogShellSection title="Detalle" icon={FileText}>
+          <Field id="incidencia-descripcion" label="Descripción detallada" required>
+            <Textarea
+              id="incidencia-descripcion"
+              value={incidentForm.description}
+              onChange={(event) =>
+                setIncidentForm((prev) => ({ ...prev, description: event.target.value }))
+              }
+              placeholder="Describa el suceso ocurrido…"
+              className="min-h-[120px] resize-none rounded-xl text-base"
+            />
+          </Field>
+        </DialogShellSection>
       </DialogShellBody>
 
       <DialogShellFooter>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onClose}
-          className="h-12 rounded-xl px-6 text-base font-semibold"
-        >
-          Cancelar
-        </Button>
-        <Button
-          type="button"
+        <DialogShellCancelButton onClick={onClose} />
+        <DialogShellActionButton
           variant="destructive"
+          onClick={onRegister}
           disabled={!incidentForm.type || !incidentForm.description}
-          className="h-12 rounded-xl px-6 text-base font-semibold"
         >
           Registrar incidencia
-        </Button>
+        </DialogShellActionButton>
       </DialogShellFooter>
     </DialogShellContent>
   </Dialog>

@@ -2,10 +2,13 @@ import React, { useRef, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Download, FileSpreadsheet, Upload } from 'lucide-react';
 
 import {
+  DialogShellActionButton,
   DialogShellBody,
+  DialogShellCancelButton,
   DialogShellContent,
   DialogShellFooter,
   DialogShellHeader,
+  DialogShellSection,
 } from '@/components/common/DialogShell';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
@@ -80,12 +83,12 @@ const ImportUsersBody: React.FC<Omit<ImportUsersDialogProps, 'open'>> = ({
         description="Carga varios usuarios de una vez con un archivo CSV (el que exporta Excel)."
       />
 
-      <DialogShellBody>
-        <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/40">
+      <DialogShellBody flush>
+        <DialogShellSection title="Formato del archivo" icon={FileSpreadsheet}>
           <p className="text-base font-semibold text-slate-800 dark:text-slate-200">
             El archivo debe tener estas columnas, en la primera fila:
           </p>
-          <p className="break-words text-sm text-slate-600 dark:text-slate-400">
+          <p className="break-words text-base text-slate-600 dark:text-slate-400">
             {CSV_COLUMNS.join(' · ')}
           </p>
           <Button
@@ -96,67 +99,69 @@ const ImportUsersBody: React.FC<Omit<ImportUsersDialogProps, 'open'>> = ({
           >
             <Download size={20} /> Descargar plantilla CSV
           </Button>
-        </div>
+        </DialogShellSection>
 
-        <div
-          onDragOver={(event) => {
-            event.preventDefault();
-            setIsDragging(true);
-          }}
-          onDragLeave={() => setIsDragging(false)}
-          onDrop={(event) => {
-            event.preventDefault();
-            setIsDragging(false);
-            const file = event.dataTransfer.files[0];
-            if (file) void readFile(file);
-          }}
-          className={cn(
-            'flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed p-8 text-center transition-colors',
-            isDragging
-              ? 'border-primary bg-primary/5'
-              : 'border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900',
-          )}
-        >
-          <FileSpreadsheet size={32} className="text-slate-400" aria-hidden />
-          <p className="text-base text-slate-600 dark:text-slate-400">
-            {fileName
-              ? `Archivo elegido: ${fileName}`
-              : 'Arrastra el archivo aquí o elígelo desde tu equipo.'}
-          </p>
-          <input
-            ref={inputRef}
-            type="file"
-            accept=".csv,text/csv"
-            className="sr-only"
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              if (file) void readFile(file);
-              // Permite volver a elegir el mismo archivo tras corregirlo.
-              event.target.value = '';
-            }}
-          />
-          <Button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            disabled={isReading}
-            className="h-11 gap-2 rounded-xl px-6 text-base font-semibold"
-          >
-            <Upload size={20} /> {isReading ? 'Leyendo el archivo…' : 'Elegir archivo CSV'}
-          </Button>
-        </div>
-
-        {result?.fatalError && (
+        <DialogShellSection title="Tu archivo" icon={Upload}>
           <div
-            role="alert"
-            className="flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4"
+            onDragOver={(event) => {
+              event.preventDefault();
+              setIsDragging(true);
+            }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={(event) => {
+              event.preventDefault();
+              setIsDragging(false);
+              const file = event.dataTransfer.files[0];
+              if (file) void readFile(file);
+            }}
+            className={cn(
+              'flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed p-8 text-center transition-colors',
+              isDragging
+                ? 'border-primary bg-primary/5'
+                : 'border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900',
+            )}
           >
-            <AlertTriangle size={20} className="mt-0.5 shrink-0 text-destructive" />
-            <p className="text-base text-slate-700 dark:text-slate-300">{result.fatalError}</p>
+            <FileSpreadsheet size={32} className="text-slate-400" aria-hidden />
+            <p className="text-base text-slate-600 dark:text-slate-400">
+              {fileName
+                ? `Archivo elegido: ${fileName}`
+                : 'Arrastra el archivo aquí o elígelo desde tu equipo.'}
+            </p>
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".csv,text/csv"
+              className="sr-only"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) void readFile(file);
+                // Permite volver a elegir el mismo archivo tras corregirlo.
+                event.target.value = '';
+              }}
+            />
+            <Button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              disabled={isReading}
+              className="h-11 gap-2 rounded-xl px-6 text-base font-semibold"
+            >
+              <Upload size={20} /> {isReading ? 'Leyendo el archivo…' : 'Elegir archivo CSV'}
+            </Button>
           </div>
-        )}
+
+          {result?.fatalError && (
+            <div
+              role="alert"
+              className="flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/5 p-4"
+            >
+              <AlertTriangle size={20} className="mt-0.5 shrink-0 text-destructive" />
+              <p className="text-base text-slate-700 dark:text-slate-300">{result.fatalError}</p>
+            </div>
+          )}
+        </DialogShellSection>
 
         {result && !result.fatalError && (
-          <div className="flex flex-col gap-4">
+          <DialogShellSection title="Resultado de la lectura" icon={CheckCircle2}>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-900/20">
                 <CheckCircle2
@@ -167,7 +172,7 @@ const ImportUsersBody: React.FC<Omit<ImportUsersDialogProps, 'open'>> = ({
                   <p className="text-xl font-bold text-emerald-700 dark:text-emerald-400">
                     {validCount}
                   </p>
-                  <p className="text-sm text-emerald-700/80 dark:text-emerald-400/80">
+                  <p className="text-base text-emerald-700/80 dark:text-emerald-400/80">
                     listos para importar
                   </p>
                 </div>
@@ -178,29 +183,26 @@ const ImportUsersBody: React.FC<Omit<ImportUsersDialogProps, 'open'>> = ({
                   <p className="text-xl font-bold text-amber-700 dark:text-amber-400">
                     {invalidCount}
                   </p>
-                  <p className="text-sm text-amber-700/80 dark:text-amber-400/80">se descartarán</p>
+                  <p className="text-base text-amber-700/80 dark:text-amber-400/80">
+                    se descartarán
+                  </p>
                 </div>
               </div>
             </div>
 
             {invalidCount > 0 && (
-              <div className="flex flex-col gap-2">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Filas con problemas
-                </h3>
-                <ul className="custom-scrollbar max-h-56 divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
-                  {result.invalid.map((row) => (
-                    <li key={row.line} className="flex flex-col gap-1 px-4 py-3">
-                      <p className="text-base font-semibold text-slate-800 dark:text-slate-200">
-                        Línea {row.line} · {row.name}
-                      </p>
-                      <p className="text-sm text-slate-600 dark:text-slate-400">
-                        {Object.values(row.errors).filter(Boolean).join(' ')}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <ul className="hidden-scrollbar max-h-56 divide-y divide-slate-100 overflow-y-auto rounded-xl border border-slate-200 dark:divide-slate-800 dark:border-slate-800">
+                {result.invalid.map((row) => (
+                  <li key={row.line} className="flex flex-col gap-1 px-4 py-3">
+                    <p className="text-base font-semibold text-slate-800 dark:text-slate-200">
+                      Línea {row.line} · {row.name}
+                    </p>
+                    <p className="text-base text-slate-600 dark:text-slate-400">
+                      {Object.values(row.errors).filter(Boolean).join(' ')}
+                    </p>
+                  </li>
+                ))}
+              </ul>
             )}
 
             {validCount === 0 && invalidCount === 0 && (
@@ -208,27 +210,15 @@ const ImportUsersBody: React.FC<Omit<ImportUsersDialogProps, 'open'>> = ({
                 El archivo tiene la cabecera correcta pero ninguna fila de datos.
               </p>
             )}
-          </div>
+          </DialogShellSection>
         )}
       </DialogShellBody>
 
       <DialogShellFooter>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onClose}
-          className="h-12 rounded-xl px-6 text-base font-semibold"
-        >
-          Cancelar
-        </Button>
-        <Button
-          type="button"
-          onClick={handleConfirm}
-          disabled={validCount === 0}
-          className="h-12 rounded-xl px-6 text-base font-semibold"
-        >
+        <DialogShellCancelButton onClick={onClose} />
+        <DialogShellActionButton onClick={handleConfirm} disabled={validCount === 0}>
           {validCount === 0 ? 'Importar usuarios' : `Importar ${validCount} usuarios`}
-        </Button>
+        </DialogShellActionButton>
       </DialogShellFooter>
     </>
   );
@@ -236,7 +226,7 @@ const ImportUsersBody: React.FC<Omit<ImportUsersDialogProps, 'open'>> = ({
 
 export const ImportUsersDialog: React.FC<ImportUsersDialogProps> = ({ open, onClose, ...rest }) => (
   <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-    <DialogShellContent size="md" height="fixed">
+    <DialogShellContent>
       <ImportUsersBody onClose={onClose} {...rest} />
     </DialogShellContent>
   </Dialog>

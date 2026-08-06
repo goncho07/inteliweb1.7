@@ -115,13 +115,16 @@ export const CitationsFiltersBar: React.FC<{
         {/* Búsqueda */}
         <div className="relative min-w-0 flex-1">
           <Search
-            className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 dark:text-slate-500"
+            className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500 dark:text-slate-400"
             aria-hidden
           />
+          {/* El placeholder largo se cortaba en el sidebar de 340px ("Buscar
+              alumno o apodera…"): va corto, y la frase completa queda en el
+              `aria-label` para el lector de pantalla. */}
           <Input
             type="search"
-            placeholder="Buscar alumno o apoderado"
-            aria-label="Buscar alumno o apoderado"
+            placeholder="Buscar citación"
+            aria-label="Buscar por alumno o apoderado"
             value={searchTerm}
             onChange={(e) => onSearchTermChange(e.target.value)}
             className="h-11 rounded-xl pl-11 text-base shadow-sm"
@@ -183,8 +186,15 @@ export const CitationsFiltersBar: React.FC<{
 
       <AppliedFilterChips chips={appliedChips} onClearAll={clearAllApplied} />
 
-      {/* Estado: fuera del panel, siempre visible bajo el buscador */}
-      <div className="hidden-scrollbar flex gap-2 overflow-x-auto">
+      {/*
+        Estado: fuera del panel, siempre visible bajo el buscador. Se envuelve
+        en varias filas en vez de desplazarse en horizontal: con
+        `overflow-x-auto` y la barra oculta, las últimas pestañas quedaban
+        cortadas contra el borde y no había ninguna señal visible de que se
+        podía desplazar — descubrimiento por exploración, justo lo que la guía
+        prohíbe.
+      */}
+      <div className="flex flex-wrap gap-2">
         {STATUS_TABS.map((tab) => (
           <Button
             key={tab.value}

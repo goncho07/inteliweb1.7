@@ -2,12 +2,13 @@ import React from 'react';
 import { CalendarDays, Download } from 'lucide-react';
 
 import {
+  DialogShellActionButton,
   DialogShellBody,
+  DialogShellCancelButton,
   DialogShellContent,
   DialogShellFooter,
   DialogShellHeader,
 } from '@/components/common/DialogShell';
-import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import type { UserItem } from '@/types';
@@ -64,7 +65,7 @@ export const TeacherScheduleDialog: React.FC<{
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogShellContent size="md" height="fixed">
+      <DialogShellContent>
         <DialogShellHeader
           icon={CalendarDays}
           title="Horario del docente"
@@ -73,7 +74,7 @@ export const TeacherScheduleDialog: React.FC<{
 
         {/* La cuadrícula es más ancha que la ventana: se desplaza dentro de su
             propio contenedor, nunca ensanchando el modal. */}
-        <DialogShellBody className="overflow-auto">
+        <DialogShellBody className="overflow-auto p-6">
           <table className="w-full min-w-[720px] border-collapse">
             <caption className="sr-only">Horario semanal de {teacher.name}</caption>
             <thead>
@@ -124,21 +125,10 @@ export const TeacherScheduleDialog: React.FC<{
         </DialogShellBody>
 
         <DialogShellFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onClose}
-            className="h-12 rounded-xl px-6 text-base font-semibold"
-          >
-            Cerrar
-          </Button>
-          <Button
-            type="button"
-            onClick={() => void downloadSchedulePdf(teacher)}
-            className="h-12 gap-2 rounded-xl px-6 text-base font-semibold"
-          >
+          <DialogShellCancelButton onClick={onClose}>Cerrar</DialogShellCancelButton>
+          <DialogShellActionButton onClick={() => void downloadSchedulePdf(teacher)}>
             <Download size={20} /> Descargar PDF
-          </Button>
+          </DialogShellActionButton>
         </DialogShellFooter>
       </DialogShellContent>
     </Dialog>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Bar,
   BarChart,
@@ -13,10 +13,11 @@ import {
 } from 'recharts';
 
 import { ChartCard } from '@/components/charts/ChartCard';
-import { ChartToggleGroup } from '@/components/charts/ChartToggleGroup';
 import { ChartTooltip } from '@/components/charts/ChartTooltip';
 import { CHART_AXIS_TICK_STYLE, CHART_COLORS, CHART_CURSOR_FILL, CHART_DATA_LABEL_STYLE, CHART_GRID_STROKE, CHART_HEIGHT } from '@/components/charts/chartTheme';
 import { ATTENDANCE_GOAL, type WeeklyAttendancePoint } from '../dashboard.constants';
+import { buildWeekAttendance, getDefaultWeekId, type DashboardDayAttendance, type DashboardWeek } from '../dashboard.weeks';
+import { DashboardWeekSelect } from './DashboardWeekSelect';
 
 const SERIES = [
   { key: 'presente' as const, label: 'Presente', color: CHART_COLORS.emerald500 },
@@ -24,39 +25,51 @@ const SERIES = [
   { key: 'ausente' as const, label: 'Ausente', color: CHART_COLORS.rose500 },
 ];
 
-type AttendanceView = 'bimestre' | 'semana';
-
 interface WeeklyAttendanceChartProps {
-  /** Patrón de la semana en curso — dato "en vivo", no cambia con el bimestre elegido. */
-  weekData: WeeklyAttendancePoint[];
-  /** Patrón semanal consolidado del bimestre elegido en el panel lateral. */
-  bimestreData: WeeklyAttendancePoint[];
-  bimestreLabel: string;
-  /** Fecha activa del sistema (`globalDate`), para ubicar la semana mostrada. */
+  /** Patrón semanal (Lun-Vie) del bimestre elegido, del que se deriva cada día real. */
+  pattern: WeeklyAttendancePoint[];
+  /** Semanas del mes en pantalla, numeradas como en los reportes de Aulas. */
+  weeks: DashboardWeek[];
+  /** Mes en pantalla, ej. "Agosto 2026". */
+  monthLabel: string;
+  /** Fecha activa del sistema (`globalDate`): marca hasta qué día hay datos. */
   today: Date;
+  /** Semilla del ámbito elegido en la cabecera, para que el filtro también mueva estos datos. */
+  seed: string;
 }
 
-const formatDayMonth = (date: Date) =>
-  new Intl.DateTimeFormat('es-PE', { day: '2-digit', month: 'short' }).format(date).replace(/\.$/, '');
+interface DayTickProps {
+  x?: number;
+  y?: number;
+  payload?: { value: string };
+}
 
-/** Lunes y domingo de la semana que contiene `reference`. */
-const getWeekRange = (reference: Date) => {
-  const weekday = reference.getDay();
-  const mondayOffset = weekday === 0 ? -6 : 1 - weekday;
-  const monday = new Date(reference);
-  monday.setDate(reference.getDate() + mondayOffset);
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  return { start: monday, end: sunday };
+/** Rótulo de columna en dos líneas: el día arriba y su fecha debajo ("Mié" / "05/08"). */
+const DayTick: React.FC<DayTickProps> = ({ x = 0, y = 0, payload }) => {
+  const [dayLabel, dateLabel] = (payload?.value ?? '').split('|');
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text textAnchor="middle" fontFamily="Poppins, sans-serif" fill={CHART_AXIS_TICK_STYLE.fill}>
+        <tspan x={0} dy={16} fontSize={12} fontWeight={600}>
+          {dayLabel}
+        </tspan>
+        <tspan x={0} dy={15} fontSize={12}>
+          {dateLabel}
+        </tspan>
+      </text>
+    </g>
+  );
 };
 
-const renderTooltip = ({ active, payload, label }: TooltipContentProps<number, string>) => {
+const renderTooltip = ({ active, payload }: TooltipContentProps<number, string>) => {
   if (!active || !payload?.length) return null;
+  const point = payload[0].payload as DashboardDayAttendance;
+  if (point.presente === null) return null;
   const rows = SERIES.map((series) => {
-    const entry = payload.find((point) => point.dataKey === series.key);
+    const entry = payload.find((item) => item.dataKey === series.key);
     return { key: series.key, label: series.label, value: `${entry?.value ?? 0}%`, color: series.color };
   });
-  return <ChartTooltip title={label} rows={rows} />;
+  return <ChartTooltip title={`${point.day} ${point.date}`} rows={rows} />;
 };
 
 /**
@@ -68,23 +81,26 @@ const renderTooltip = ({ active, payload, label }: TooltipContentProps<number, s
  * Tardanza/Ausente (2-9%) queden como segmentos casi invisibles junto a
  * Presente (85-96%) en la misma escala de 0 a 100.
  *
- * Selector Bimestre/Semana: lo que un director revisa es el consolidado del
- * bimestre elegido en el panel lateral, no necesariamente la semana en
- * curso — pero ambas vistas son útiles, así que conviven en la misma
- * tarjeta en vez de forzar una sola.
+ * El periodo es un mes filtrado por semana, igual que la Vista General del
+ * Aula (ver `dashboard.weeks.ts`): cada columna es un día real con su fecha
+ * ("Mié 05/08"), no un "día tipo" promediado. Los días que aún no han
+ * ocurrido se quedan sin barra en vez de mostrar un dato inventado.
  */
 export const WeeklyAttendanceChart: React.FC<WeeklyAttendanceChartProps> = ({
-  weekData,
-  bimestreData,
-  bimestreLabel,
+  pattern,
+  weeks,
+  monthLabel,
   today,
+  seed,
 }) => {
-  const [view, setView] = useState<AttendanceView>('bimestre');
-  const { start, end } = getWeekRange(today);
-  const weekRangeLabel = `${formatDayMonth(start)} – ${formatDayMonth(end)}`;
+  const defaultWeekId = getDefaultWeekId(weeks, today);
+  const [weekId, setWeekId] = useState(defaultWeekId);
+  const selectedWeek = weeks.find((week) => week.id === weekId) ?? weeks.find((week) => week.id === defaultWeekId);
 
-  const data = view === 'bimestre' ? bimestreData : weekData;
-  const rangeLabel = view === 'bimestre' ? bimestreLabel : weekRangeLabel;
+  const data = useMemo(
+    () => (selectedWeek ? buildWeekAttendance(pattern, selectedWeek, today, seed) : []),
+    [pattern, selectedWeek, today, seed],
+  );
 
   return (
     <ChartCard
@@ -92,15 +108,14 @@ export const WeeklyAttendanceChart: React.FC<WeeklyAttendanceChartProps> = ({
       className="h-full min-h-0"
       bodyClassName="flex flex-col"
       action={
-        <ChartToggleGroup<AttendanceView>
-          value={view}
-          onChange={setView}
-          ariaLabel="Elegir periodo de asistencia"
-          options={[
-            { value: 'bimestre' as const, label: 'Bimestre' },
-            { value: 'semana' as const, label: 'Semana' },
-          ]}
-        />
+        weeks.length > 0 && (
+          <DashboardWeekSelect
+            weeks={weeks}
+            value={selectedWeek?.id ?? ''}
+            onChange={setWeekId}
+            ariaLabel="Elegir semana de asistencia"
+          />
+        )
       }
     >
       <div className="min-h-0 flex-1" style={{ minHeight: CHART_HEIGHT }}>
@@ -109,10 +124,12 @@ export const WeeklyAttendanceChart: React.FC<WeeklyAttendanceChartProps> = ({
             <CartesianGrid vertical={false} stroke={CHART_GRID_STROKE} />
             <ReferenceLine y={ATTENDANCE_GOAL} stroke={CHART_GRID_STROKE} strokeDasharray="4 4" />
             <XAxis
-              dataKey="day"
+              dataKey="axisLabel"
               tickLine={false}
               axisLine={{ stroke: CHART_GRID_STROKE }}
-              tick={CHART_AXIS_TICK_STYLE}
+              interval={0}
+              tick={<DayTick />}
+              height={40}
             />
             <YAxis
               domain={[0, 100]}
@@ -130,7 +147,7 @@ export const WeeklyAttendanceChart: React.FC<WeeklyAttendanceChartProps> = ({
               <LabelList
                 dataKey="presente"
                 position="top"
-                formatter={(value) => `${value}%`}
+                formatter={(value) => (value === null || value === undefined ? '' : `${value}%`)}
                 style={CHART_DATA_LABEL_STYLE}
               />
             </Bar>
@@ -149,7 +166,7 @@ export const WeeklyAttendanceChart: React.FC<WeeklyAttendanceChartProps> = ({
             </div>
           ))}
         </div>
-        <p className="whitespace-nowrap text-xs font-semibold text-slate-400 dark:text-slate-500">{rangeLabel}</p>
+        <p className="whitespace-nowrap text-xs font-semibold text-slate-400 dark:text-slate-500">{monthLabel}</p>
       </div>
     </ChartCard>
   );

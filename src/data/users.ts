@@ -1,5 +1,6 @@
 import type { ClassroomRef, UserItem } from '@/types';
 import { EDUCATIONAL_STRUCTURE, getSectionSize } from '@/data/education';
+import { DIRECTIVE_POSITIONS, STAFF_POSITIONS } from '@/features/users/users.constants';
 import { pseudoRandom } from '@/lib/pseudoRandom';
 
 /**
@@ -46,16 +47,6 @@ const SUBJECTS = [
   'Inglés', 'Arte y Cultura', 'Educación Física', 'Religión',
 ];
 
-/** Cargos de dirección: los cinco primeros administrativos, en este orden. */
-const DIRECTIVE_POSITIONS = [
-  'Director', 'Subdirector', 'Coordinador académico', 'Coordinador de convivencia', 'Coordinador de nivel',
-];
-
-/** Cargos del resto del personal administrativo. */
-const STAFF_POSITIONS = [
-  'Secretaría', 'Auxiliar de educación', 'Psicología', 'Tesorería', 'Soporte informático', 'Biblioteca',
-];
-
 /** Vías de la zona, para componer una dirección verosímil. */
 const STREETS = [
   'Av. Los Héroes', 'Jr. Túpac Amaru', 'Calle Las Begonias', 'Av. Perú',
@@ -86,7 +77,8 @@ const seededBirthDate = (seed: string, role: UserItem['role'], level?: UserItem[
 };
 
 /** Elige un elemento de `list` de forma estable: la misma `seed` siempre devuelve el mismo elemento. */
-const pickSeeded = <T,>(list: T[], seed: string): T => list[Math.floor(pseudoRandom(seed) * list.length)];
+const pickSeeded = <T,>(list: readonly T[], seed: string): T =>
+  list[Math.floor(pseudoRandom(seed) * list.length)];
 
 /** Entero estable en `[min, max]` a partir de una semilla de texto. */
 const seededInt = (seed: string, min: number, max: number): number =>
@@ -119,7 +111,6 @@ const generateRandomUser = (
 
   return {
     id: id.toString(),
-    code: role === 'Estudiante' ? `EST20261000${1000 + id}` : undefined,
     name: `${firstName} ${lastName1} ${lastName2}`,
     dni,
     role,
@@ -272,3 +263,9 @@ const generateMockData = (): UserItem[] => {
 };
 
 export const MOCK_USERS = generateMockData();
+
+/** Alumnos matriculados de una aula concreta, ordenados por nombre. */
+export const studentsInClassroom = (classroom: ClassroomRef): UserItem[] =>
+  MOCK_USERS.filter(
+    (u) => u.role === 'Estudiante' && u.level === classroom.level && u.grade === classroom.grade && u.section === classroom.section,
+  ).sort((a, b) => a.name.localeCompare(b.name));

@@ -71,12 +71,14 @@ export const downloadIncidentsReport = (
   periodLabel: string,
   rows: IncidentReportRow[],
 ) => {
-  const head = ['Fecha', 'Estudiante', 'Tipo', 'Gravedad', 'Descripción'];
-  const body = rows.map((row) => [
-    row.dateLabel,
+  const head = ['N°', 'Estudiante', 'Fecha y hora', 'Tipo', 'Gravedad', 'Registrado por', 'Descripción'];
+  const body = rows.map((row, index) => [
+    String(index + 1),
     formatStudentDisplayName(row.studentName),
+    `${row.dateLabel} ${row.timeLabel}`,
     row.type.label,
     row.type.category,
+    row.teacherName,
     row.description,
   ]);
   const fileName = sanitizeFileName(`Incidencias_${aulaLabel}_${periodLabel}`);

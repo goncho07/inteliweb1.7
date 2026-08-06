@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ShieldAlert } from 'lucide-react';
 import {
   Bar,
@@ -14,7 +14,6 @@ import {
 } from 'recharts';
 
 import { ChartCard } from '@/components/charts/ChartCard';
-import { ChartToggleGroup } from '@/components/charts/ChartToggleGroup';
 import { ChartTooltip } from '@/components/charts/ChartTooltip';
 import { CHART_AXIS_TICK_STYLE, CHART_CURSOR_FILL, CHART_DATA_LABEL_STYLE, CHART_GRID_STROKE, CHART_HEIGHT } from '@/components/charts/chartTheme';
 import {
@@ -22,6 +21,8 @@ import {
   type IncidentSeverityLevel,
   type IncidentTypeCount,
 } from '../dashboard.constants';
+import { buildWeekIncidentTypes, getDefaultWeekId, type DashboardWeek } from '../dashboard.weeks';
+import { DashboardWeekSelect } from './DashboardWeekSelect';
 
 const SEVERITY_LEGEND: { severity: IncidentSeverityLevel; label: string }[] = [
   { severity: 'Leve', label: 'Leve' },
@@ -29,13 +30,17 @@ const SEVERITY_LEGEND: { severity: IncidentSeverityLevel; label: string }[] = [
   { severity: 'Grave', label: 'Grave' },
 ];
 
-type IncidentTypesView = 'bimestre' | 'semana';
-
 interface IncidentTypesChartProps {
-  /** Tipos de incidencia del bimestre elegido en el panel lateral. */
-  bimestreData: IncidentTypeCount[];
-  /** Tipos de incidencia de la semana en curso — dato "en vivo". */
-  weekData: IncidentTypeCount[];
+  /** Perfil de tipos de incidencia del bimestre elegido, del que se deriva cada semana. */
+  profile: IncidentTypeCount[];
+  /** Semanas del mes en pantalla, numeradas como en los reportes de Aulas. */
+  weeks: DashboardWeek[];
+  /** Mes en pantalla, ej. "Agosto 2026". */
+  monthLabel: string;
+  /** Fecha activa del sistema (`globalDate`): marca hasta qué día hay datos. */
+  today: Date;
+  /** Semilla del ámbito elegido en la cabecera, para que el filtro también mueva estos datos. */
+  seed: string;
 }
 
 const TICK_MAX_CHARS_PER_LINE = 12;
@@ -104,14 +109,24 @@ const renderTooltip = ({ active, payload }: TooltipContentProps<number, string>)
  * siempre visible, debajo del gráfico: el color solo no basta para
  * distinguir 3 niveles (§ C2.1).
  *
- * Selector Bimestre/Semana: mismo criterio que la tarjeta de Asistencia —
- * el consolidado del bimestre es lo que se revisa normalmente, pero ver
- * solo la semana en curso también es útil, así que conviven en la misma
- * tarjeta.
+ * El periodo es un mes filtrado por semana, el mismo que la tarjeta de
+ * Asistencia y que la Vista General del Aula (ver `dashboard.weeks.ts`).
  */
-export const IncidentTypesChart: React.FC<IncidentTypesChartProps> = ({ bimestreData, weekData }) => {
-  const [view, setView] = useState<IncidentTypesView>('bimestre');
-  const data = view === 'bimestre' ? bimestreData : weekData;
+export const IncidentTypesChart: React.FC<IncidentTypesChartProps> = ({
+  profile,
+  weeks,
+  monthLabel,
+  today,
+  seed,
+}) => {
+  const defaultWeekId = getDefaultWeekId(weeks, today);
+  const [weekId, setWeekId] = useState(defaultWeekId);
+  const selectedWeek = weeks.find((week) => week.id === weekId) ?? weeks.find((week) => week.id === defaultWeekId);
+
+  const data = useMemo(
+    () => (selectedWeek ? buildWeekIncidentTypes(profile, selectedWeek, today, seed) : []),
+    [profile, selectedWeek, today, seed],
+  );
 
   return (
     <ChartCard
@@ -119,15 +134,14 @@ export const IncidentTypesChart: React.FC<IncidentTypesChartProps> = ({ bimestre
       className="h-full min-h-0"
       bodyClassName="flex flex-col"
       action={
-        <ChartToggleGroup<IncidentTypesView>
-          value={view}
-          onChange={setView}
-          ariaLabel="Elegir periodo de tipos de incidencia"
-          options={[
-            { value: 'bimestre' as const, label: 'Bimestre' },
-            { value: 'semana' as const, label: 'Semana' },
-          ]}
-        />
+        weeks.length > 0 && (
+          <DashboardWeekSelect
+            weeks={weeks}
+            value={selectedWeek?.id ?? ''}
+            onChange={setWeekId}
+            ariaLabel="Elegir semana de tipos de incidencia"
+          />
+        )
       }
     >
       {data.length === 0 ? (
@@ -136,9 +150,7 @@ export const IncidentTypesChart: React.FC<IncidentTypesChartProps> = ({ bimestre
           style={{ minHeight: CHART_HEIGHT }}
         >
           <ShieldAlert size={20} strokeWidth={2} />
-          <p className="text-sm">
-            {view === 'bimestre' ? 'Sin incidencias registradas este bimestre.' : 'Sin incidencias registradas esta semana.'}
-          </p>
+          <p className="text-sm">Sin incidencias registradas en {selectedWeek?.label ?? 'esta semana'}.</p>
         </div>
       ) : (
         <div className="min-h-0 flex-1" style={{ minHeight: CHART_HEIGHT }}>
@@ -173,18 +185,21 @@ export const IncidentTypesChart: React.FC<IncidentTypesChartProps> = ({ bimestre
         </div>
       )}
 
-      <div className="mt-3 flex shrink-0 flex-wrap items-center justify-center gap-x-3 gap-y-1">
-        {SEVERITY_LEGEND.map((item) => (
-          <div key={item.severity} className="flex items-center gap-1.5">
-            <span
-              className="h-2.5 w-2.5 shrink-0 rounded-full"
-              style={{ backgroundColor: INCIDENT_SEVERITY_COLORS[item.severity] }}
-            />
-            <span className="whitespace-nowrap text-xs font-semibold text-slate-600 dark:text-slate-300">
-              {item.label}
-            </span>
-          </div>
-        ))}
+      <div className="mt-3 flex shrink-0 flex-col items-center gap-1">
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+          {SEVERITY_LEGEND.map((item) => (
+            <div key={item.severity} className="flex items-center gap-1.5">
+              <span
+                className="h-2.5 w-2.5 shrink-0 rounded-full"
+                style={{ backgroundColor: INCIDENT_SEVERITY_COLORS[item.severity] }}
+              />
+              <span className="whitespace-nowrap text-xs font-semibold text-slate-600 dark:text-slate-300">
+                {item.label}
+              </span>
+            </div>
+          ))}
+        </div>
+        <p className="whitespace-nowrap text-xs font-semibold text-slate-400 dark:text-slate-500">{monthLabel}</p>
       </div>
     </ChartCard>
   );

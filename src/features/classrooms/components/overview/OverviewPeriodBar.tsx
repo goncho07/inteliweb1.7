@@ -4,7 +4,7 @@ import { CalendarCheck, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { getMonthLabel, isSameMonth } from '@/features/classrooms/overview.period';
+import { canStepMonth, getMonthLabel, isSameMonth } from '@/features/classrooms/overview.period';
 
 import { DownloadReportMenu } from './DownloadReportMenu';
 
@@ -26,6 +26,10 @@ export const OverviewPeriodBar: React.FC<{
   // Ya estando en el mes en curso, "Hoy" no tendría nada que hacer: se
   // deshabilita en vez de quedarse como un botón que no responde.
   const isCurrentMonth = isSameMonth(cursor, today);
+  // El año escolar va de marzo a diciembre: en los extremos la flecha no lleva
+  // a ningún sitio, así que se deshabilita en vez de no responder.
+  const canGoBack = canStepMonth(cursor, -1);
+  const canGoForward = canStepMonth(cursor, 1);
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -40,6 +44,7 @@ export const OverviewPeriodBar: React.FC<{
                   size="icon"
                   aria-label="Mes anterior"
                   onClick={() => onStep(-1)}
+                  disabled={!canGoBack}
                   className="h-10 w-10 rounded-lg"
                 >
                   <ChevronLeft size={20} strokeWidth={2} />
@@ -58,6 +63,7 @@ export const OverviewPeriodBar: React.FC<{
                   size="icon"
                   aria-label="Mes siguiente"
                   onClick={() => onStep(1)}
+                  disabled={!canGoForward}
                   className="h-10 w-10 rounded-lg"
                 >
                   <ChevronRight size={20} strokeWidth={2} />

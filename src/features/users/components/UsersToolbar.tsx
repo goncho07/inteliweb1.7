@@ -159,7 +159,7 @@ export const UsersToolbar: React.FC<{
                 options={LEVEL_OPTIONS}
                 onChange={(level) => setDraft({ ...draft, level, grade: ALL, section: ALL })}
                 allValue={ALL}
-                allLabel="Todos los niveles"
+                allLabel="Todos"
               />
               <LabeledSelect
                 id="filtro-grado"
@@ -169,8 +169,7 @@ export const UsersToolbar: React.FC<{
                 onChange={(grade) => setDraft({ ...draft, grade, section: ALL })}
                 disabled={draft.level === ALL}
                 allValue={ALL}
-                allLabel="Todos los grados"
-                hint="Elige primero un nivel."
+                allLabel="Todos"
               />
               <LabeledSelect
                 id="filtro-seccion"
@@ -184,8 +183,7 @@ export const UsersToolbar: React.FC<{
                 onChange={(section) => setDraft({ ...draft, section })}
                 disabled={draft.grade === ALL}
                 allValue={ALL}
-                allLabel="Todas las secciones"
-                hint="Elige primero un grado."
+                allLabel="Todos"
               />
             </>
           )}
@@ -197,7 +195,7 @@ export const UsersToolbar: React.FC<{
             options={filters.statusOptions}
             onChange={(status) => setDraft({ ...draft, status })}
             allValue={ALL}
-            allLabel="Todos los estados"
+            allLabel="Todos"
           />
         </FiltersPopover>
 

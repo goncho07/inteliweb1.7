@@ -79,6 +79,23 @@
 }
 
 @layer utilities {
+  /*
+   * Trama diagonal de "bloqueado": las columnas de vacaciones de la tabla de
+   * asistencia, donde no hay nada que registrar y por tanto tampoco nada que
+   * escribir. Las rayas se dibujan con `currentColor`, así que basta con dar
+   * al elemento el color de texto que toque para que la trama acompañe al
+   * tema claro, al oscuro y al Rojo sin repetir el color aquí.
+   */
+  .stripes-blocked {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      currentColor 0,
+      currentColor 1px,
+      transparent 1px,
+      transparent 7px
+    );
+  }
+
   /* Oculta la barra de scroll manteniendo el desplazamiento. */
   .scrollbar-hide::-webkit-scrollbar,
   .hidden-scrollbar::-webkit-scrollbar {

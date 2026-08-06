@@ -13,6 +13,11 @@ import { MENU_CONFIG, preloadModules } from '@/config/menu';
 import { LoginModule } from '@/features/auth/LoginModule';
 import { ROLE_LABEL, buildSession, type Session } from '@/features/auth/session';
 import { SessionProvider } from '@/features/auth/SessionContext';
+import { forgetRememberedUser, getRememberedUserId, rememberUser } from '@/features/auth/sessionStorage';
+import { MOCK_USERS } from '@/data/users';
+import { ProfileAvatar } from '@/features/profile/components/ProfileAvatar';
+import { ProfileIdentityProvider } from '@/features/profile/ProfileIdentityContext';
+import { ThemeProvider } from '@/features/theme/ThemeContext';
 import type { AppRole, ModuleId, UserItem } from '@/types';
 
 /** Herramientas del riel que no son un módulo de `MENU_CONFIG` (no tienen componente propio). */
@@ -22,8 +27,26 @@ const TOOL_ROLES: Record<'calendar' | 'assistant' | 'help', AppRole[]> = {
   help: ['directivo', 'docente', 'auxiliar', 'apoderado'],
 };
 
+/**
+ * Sesión con la que arranca la app cuando el DNI recordado (`getRememberedUserId`)
+ * sigue teniendo acceso al sistema. `useState(() => …)` la resuelve una sola
+ * vez, antes del primer render, para que la pantalla de acceso ni se llegue a
+ * dibujar cuando hay una sesión que restaurar.
+ */
+const resolveRememberedSession = (): Session | null => {
+  const rememberedId = getRememberedUserId();
+  if (!rememberedId) return null;
+
+  const user = MOCK_USERS.find((u) => u.id === rememberedId && !!u.appRole);
+  if (!user) {
+    forgetRememberedUser();
+    return null;
+  }
+  return buildSession(user);
+};
+
 export default function App() {
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<Session | null>(resolveRememberedSession);
   const [currentView, setCurrentView] = useState<ModuleId>("dashboard");
   const [chatOpen, setChatOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -36,6 +59,12 @@ export default function App() {
   // propio ancho, así que el rail principal arranca angosto y solo se
   // expande si el docente lo pide.
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+
+  // Identidad visible del usuario (foto y nombre a mostrar). Vive aquí y no en
+  // `ProfileModule` porque el riel también la enseña: si el estado viviera
+  // dentro del módulo, subir una foto no la aplicaría a esta tarjeta.
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+  const [profileName, setProfileName] = useState('');
 
   // Manejo del Modo Oscuro y Tema Rojo
   useEffect(() => {
@@ -52,16 +81,6 @@ export default function App() {
       document.documentElement.removeAttribute("data-theme");
     }
   }, [isDarkMode, themeMode]);
-
-  // Expose theme setting function globally for ProfileModule
-  useEffect(() => {
-    (window as any).setGlobalThemeMode = setThemeMode;
-    (window as any).currentGlobalThemeMode = themeMode;
-    return () => {
-      delete (window as any).setGlobalThemeMode;
-      delete (window as any).currentGlobalThemeMode;
-    };
-  }, [themeMode]);
 
   // Precarga en segundo plano de los módulos accesibles para este rol,
   // apenas el usuario entra, para que cambiar de sección se sienta instantáneo.
@@ -95,33 +114,46 @@ export default function App() {
     return allowed.find((m) => m.id === currentView)?.component ?? allowed[0]?.component ?? MENU_CONFIG[0].component;
   }, [session, currentView]);
 
-  const handleLogin = (user: UserItem) => {
+  const handleLogin = (user: UserItem, remember: boolean) => {
     const newSession = buildSession(user);
     setSession(newSession);
+    setProfileName(user.name);
+    setProfilePhoto(null);
     const firstAllowed = MENU_CONFIG.find((item) => !item.hidden && item.roles.includes(newSession.role));
     setCurrentView(firstAllowed?.id ?? "dashboard");
+    if (remember) {
+      rememberUser(user.id);
+    } else {
+      forgetRememberedUser();
+    }
   };
 
   const handleLogout = () => {
     setSession(null);
     setCurrentView("dashboard");
+    setProfileName("");
+    setProfilePhoto(null);
+    forgetRememberedUser();
   };
 
-  const sessionInitials = session
-    ? session.user.name
-        .split(" ")
-        .map((part) => part.charAt(0))
-        .slice(0, 2)
-        .join("")
-        .toUpperCase()
-    : "";
+  // Nombre a mostrar: el editado en Mi Perfil, o el de la sesión si aún no se tocó.
+  const displayName = profileName || session?.user.name || "";
 
   return (
     <>
       {!session ? (
-        <LoginModule onLogin={handleLogin} config={APP_CONFIG} />
+        <LoginModule onLogin={handleLogin} />
       ) : (
         <SessionProvider session={session}>
+        <ThemeProvider value={{ themeMode, setThemeMode, isDarkMode, setIsDarkMode }}>
+        <ProfileIdentityProvider
+          value={{
+            name: displayName,
+            setName: setProfileName,
+            photo: profilePhoto,
+            setPhoto: setProfilePhoto,
+          }}
+        >
         <div className="h-screen w-screen bg-slate-50 dark:bg-slate-950 overflow-hidden flex relative text-gray-800 dark:text-gray-200 font-poppins">
           {/* SIDEBAR */}
           <motion.div
@@ -257,12 +289,17 @@ export default function App() {
                       onClick={() => setCurrentView("profile")}
                       title="Ir a mi perfil"
                     >
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-sm">
-                        {sessionInitials}
-                      </div>
+                      {/* Mismo `ProfileAvatar` que Mi Perfil: si el usuario sube una
+                          foto ahí, aparece aquí sin ninguna lógica duplicada. */}
+                      <ProfileAvatar
+                        name={displayName}
+                        photo={profilePhoto}
+                        className="h-10 w-10 shadow-sm"
+                        textClassName="text-sm"
+                      />
                       <div className="flex flex-col truncate">
                         <span className="text-sm font-bold text-gray-900 dark:text-white truncate">
-                          {session.user.name}
+                          {displayName}
                         </span>
                         <span className="text-xs text-gray-500 truncate font-medium">
                           {ROLE_LABEL[session.role]}
@@ -278,9 +315,14 @@ export default function App() {
                         variant="ghost"
                         onClick={() => setCurrentView("profile")}
                         aria-label="Ir a mi perfil"
-                        className="h-11 w-full rounded-2xl border border-blue-400/30 bg-gradient-to-br from-blue-500 to-blue-600 p-0 text-sm font-bold text-white shadow-sm transition-all hover:from-blue-500 hover:to-blue-600 hover:text-white hover:ring-2 hover:ring-blue-500 hover:ring-offset-2 dark:ring-offset-slate-900"
+                        className="h-11 w-11 shrink-0 rounded-full p-0 shadow-sm hover:bg-transparent"
                       >
-                        {sessionInitials}
+                        <ProfileAvatar
+                          name={displayName}
+                          photo={profilePhoto}
+                          className="h-11 w-11"
+                          textClassName="text-sm"
+                        />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>Mi perfil</TooltipContent>
@@ -297,7 +339,7 @@ export default function App() {
                         variant="ghost"
                         onClick={() => setIsDarkMode(!isDarkMode)}
                         aria-label={isDarkMode ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
-                        className="h-11 w-full flex-1 rounded-2xl border border-slate-100 bg-slate-50 text-gray-700 transition-all hover:bg-slate-100 hover:ring-2 hover:ring-blue-500 hover:ring-offset-2 dark:border-slate-700 dark:bg-slate-800/80 dark:text-gray-300 dark:hover:bg-slate-700/80 dark:ring-offset-slate-900"
+                        className="h-11 w-full flex-1 rounded-2xl border border-slate-100 bg-slate-50 text-gray-700 transition-all hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/80 dark:text-gray-300 dark:hover:bg-slate-700/80"
                       >
                         <AnimatePresence mode="wait">
                           <motion.div
@@ -377,6 +419,8 @@ export default function App() {
           />
           <AIChatPanel isOpen={chatOpen} onClose={() => setChatOpen(false)} />
         </div>
+        </ProfileIdentityProvider>
+        </ThemeProvider>
         </SessionProvider>
       )}
       <Toaster />

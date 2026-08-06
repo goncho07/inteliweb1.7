@@ -1,3 +1,4 @@
+import { pseudoRandom } from '@/lib/pseudoRandom';
 import type { CalendarEvent } from '@/types';
 
 /**
@@ -23,6 +24,69 @@ export const MONTH_NAMES = [
   "Diciembre",
 ];
 export const DAY_NAMES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+
+/* -------------------------------------------------------------------------
+ * Bimestres del año escolar
+ * ---------------------------------------------------------------------- */
+
+export interface SchoolTerm {
+  id: 1 | 2 | 3 | 4;
+  /** "1° Bimestre", el nombre completo. */
+  label: string;
+  /** "1° Bim.", para rótulos estrechos como la cabecera de la tabla de asistencia. */
+  shortLabel: string;
+  start: Date;
+  end: Date;
+}
+
+/**
+ * Determinación de bimestres del año escolar 2026 del Ministerio de
+ * Educación. **Es la única fuente de fechas lectivas de la app**: de aquí
+ * salen el selector de bimestre del panel Inicio, el recorte de meses de los
+ * reportes y la numeración de semanas de la tabla de asistencia. Los tramos
+ * entre un bimestre y el siguiente son vacaciones: no hay clases y, por
+ * tanto, tampoco asistencia que registrar.
+ */
+export const SCHOOL_TERMS: SchoolTerm[] = [
+  { id: 1, label: '1° Bimestre', shortLabel: '1° Bim.', start: new Date(YEAR, 2, 16), end: new Date(YEAR, 4, 15) },
+  { id: 2, label: '2° Bimestre', shortLabel: '2° Bim.', start: new Date(YEAR, 4, 25), end: new Date(YEAR, 6, 24) },
+  { id: 3, label: '3° Bimestre', shortLabel: '3° Bim.', start: new Date(YEAR, 7, 10), end: new Date(YEAR, 9, 9) },
+  { id: 4, label: '4° Bimestre', shortLabel: '4° Bim.', start: new Date(YEAR, 9, 19), end: new Date(YEAR, 11, 18) },
+];
+
+/**
+ * Inicio y fin del año escolar: del 16 de marzo al 18 de diciembre. Fuera de
+ * ese rango no hay colegio, así que ningún reporte muestra enero ni febrero
+ * — no se inventa asistencia de un día sin clases.
+ */
+export const SCHOOL_YEAR_START = SCHOOL_TERMS[0].start;
+export const SCHOOL_YEAR_END = SCHOOL_TERMS[SCHOOL_TERMS.length - 1].end;
+
+/** Rótulo de un tramo que cae entre dos bimestres. */
+export const VACATION_LABEL = 'Vacaciones';
+
+/** Bimestre al que pertenece una fecha, o `null` si cae en vacaciones (o fuera del año escolar). */
+export const getSchoolTerm = (date: Date): SchoolTerm | null =>
+  SCHOOL_TERMS.find((term) => date >= term.start && date <= term.end) ?? null;
+
+/** Lunes de la semana en la que cae `date` (la semana escolar empieza en lunes). */
+const mondayOf = (date: Date): Date => {
+  const monday = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const offset = (monday.getDay() + 6) % 7; // domingo (0) queda a 6 días de su lunes
+  monday.setDate(monday.getDate() - offset);
+  return monday;
+};
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * Número de semana de una fecha **dentro de su bimestre**, contando desde la
+ * fecha de inicio del bimestre y no desde el 1 del mes: por eso el 1 de
+ * septiembre es "Semana 4" (el 3° Bimestre arrancó el 10 de agosto) aunque
+ * sea el primer día del mes. La semana 1 es la que contiene el día de inicio.
+ */
+export const getTermWeekNumber = (date: Date, term: SchoolTerm): number =>
+  Math.floor((mondayOf(date).getTime() - mondayOf(term.start).getTime()) / MS_PER_DAY / 7) + 1;
 
 // Las claves tienen el formato "MesIndex-Dia" (mes base 0).
 // Keys are "MonthIndex-Day" (0-based month)
@@ -823,4 +887,100 @@ export const TEACHER_SCHEDULE: Record<
       color: "bg-transparent text-slate-800 font-bold dark:text-slate-200",
     },
   ],
+};
+
+/* -------------------------------------------------------------------------
+ * Horario del alumno (vista del apoderado)
+ * ---------------------------------------------------------------------- */
+
+/**
+ * El apoderado no ve el horario del docente que inició sesión (no tiene
+ * sentido para él) — ve el horario semanal de clases de su propio hijo. No
+ * hay una malla curricular real que traer, así que se deriva de forma
+ * determinista del aula del alumno (nivel, grado y sección) con
+ * `pseudoRandom`: la misma aula siempre muestra el mismo horario.
+ */
+const SUBJECTS_BY_LEVEL: Record<string, string[]> = {
+  Inicial: ['Juego Libre', 'Psicomotricidad', 'Comunicación', 'Matemática', 'Arte', 'Música'],
+  Primaria: [
+    'Comunicación',
+    'Matemática',
+    'Personal Social',
+    'Ciencia y Tecnología',
+    'Arte y Cultura',
+    'Educación Física',
+    'Inglés',
+    'Religión',
+    'Tutoría',
+  ],
+  Secundaria: [
+    'Comunicación',
+    'Matemática',
+    'Inglés',
+    'Ciencias Sociales',
+    'Ciencia y Tecnología',
+    'DPCC',
+    'Educación Física',
+    'Arte y Cultura',
+    'Religión',
+    'Educación para el Trabajo',
+    'Tutoría',
+  ],
+};
+
+const STUDENT_SUBJECT_COLORS = [
+  'bg-indigo-200 text-indigo-900 border-indigo-300 dark:bg-indigo-900/40 dark:text-indigo-300 dark:border-indigo-800',
+  'bg-pink-200 text-pink-900 border-pink-300 dark:bg-pink-900/40 dark:text-pink-300 dark:border-pink-800',
+  'bg-amber-400 text-amber-900 border-amber-500 dark:bg-amber-600/40 dark:text-amber-300 dark:border-amber-700',
+  'bg-sky-400 text-sky-900 border-sky-500 dark:bg-sky-600/40 dark:text-sky-200 dark:border-sky-700',
+  'bg-yellow-300 text-yellow-900 border-yellow-400 dark:bg-yellow-600/40 dark:text-yellow-300 dark:border-yellow-700',
+  'bg-lime-300 text-lime-900 border-lime-400 dark:bg-lime-600/40 dark:text-lime-300 dark:border-lime-700',
+  'bg-emerald-500 text-white border-emerald-600 dark:bg-emerald-600/60 dark:text-emerald-100 dark:border-emerald-700',
+  'bg-violet-300 text-violet-900 border-violet-300 dark:bg-violet-900/40 dark:text-violet-300 dark:border-violet-800',
+];
+
+export interface StudentScheduleSlot {
+  start: string;
+  end: string;
+  subject: string;
+  color: string;
+  isRecreo?: boolean;
+}
+
+/** Horario semanal de un alumno para un día puntual, mismo orden que `SCHEDULE_TIME_SLOTS`. */
+export const getStudentSchedule = (
+  level: string,
+  grade: string,
+  section: string,
+  weekday: string,
+): StudentScheduleSlot[] => {
+  const subjects = SUBJECTS_BY_LEVEL[level] ?? SUBJECTS_BY_LEVEL.Primaria;
+  const seedBase = `horario-alumno-${level}-${grade}-${section}-${weekday}`;
+
+  let classSlotIndex = 0;
+  let blockSubject = '';
+
+  return SCHEDULE_TIME_SLOTS.map((slot) => {
+    if (slot.isRecreo) {
+      return {
+        start: slot.start,
+        end: slot.end,
+        subject: 'Recreo',
+        color: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+        isRecreo: true,
+      };
+    }
+
+    // Bloques de dos periodos seguidos con la misma materia, como en un horario real.
+    if (classSlotIndex % 2 === 0) {
+      const previousSubject = blockSubject;
+      let index = Math.floor(pseudoRandom(`${seedBase}-${classSlotIndex}`) * subjects.length);
+      if (subjects[index] === previousSubject) index = (index + 1) % subjects.length;
+      blockSubject = subjects[index];
+    }
+    classSlotIndex += 1;
+
+    const colorIndex = subjects.indexOf(blockSubject) % STUDENT_SUBJECT_COLORS.length;
+    return { start: slot.start, end: slot.end, subject: blockSubject, color: STUDENT_SUBJECT_COLORS[colorIndex] };
+  });
 };

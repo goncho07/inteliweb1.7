@@ -123,6 +123,15 @@ export const downloadStudentReport = ({
             // Use actual calendar data if available
             const record = calendarData.find((r) => r && r.dayNumber === day);
             if (record) {
+              // Una falta justificada se marca "J", no "F": es el estado con el
+              // que queda el día en el registro oficial.
+              if (record.status === "Justificada")
+                return {
+                  content: "J",
+                  styles: {
+                    textColor: [0, 0, 255] as [number, number, number],
+                  },
+                };
               if (record.originalStatus === "Falta")
                 return {
                   content: "F",
@@ -135,13 +144,6 @@ export const downloadStudentReport = ({
                   content: "T",
                   styles: {
                     textColor: [255, 165, 0] as [number, number, number],
-                  },
-                };
-              if (record.status.includes("Justificada"))
-                return {
-                  content: "J",
-                  styles: {
-                    textColor: [0, 0, 255] as [number, number, number],
                   },
                 };
             }
@@ -191,11 +193,13 @@ export const downloadStudentReport = ({
   } else if (reportType === "Incidencias") {
     const head = [["Fecha", "Hora", "Tipo", "Descripción", "Registrado por"]];
     const body = personalIncidents.map((inc) => [
-      inc.date,
-      inc.time || "10:30 AM",
-      inc.type.label,
+      inc.dateLabel,
+      inc.time,
+      `${inc.label} (${inc.category})`,
       inc.description,
-      inc.teacher || "Prof. María García",
+      // Las faltas y tardanzas no las registra un docente: las genera el
+      // sistema de asistencia, y así se deja constancia en el reporte.
+      inc.teacher || "Sistema de asistencia",
     ]);
 
     autoTable(doc, {

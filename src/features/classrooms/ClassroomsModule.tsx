@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { HeartHandshake, School } from 'lucide-react';
+import { EmptyState } from '@/components/common/EmptyState';
 import { ModulePane, ModuleShell } from '@/components/layout/ModuleShell';
 import { MOCK_USERS } from '@/data/users';
 import { useSession } from '@/features/auth/SessionContext';
@@ -45,22 +46,15 @@ export const ClassroomsModule: React.FC<ModuleProps> = ({ globalDate }) => {
       <ModuleShell>
         <ModulePane>
           {child ? (
-            <StudentDetail student={child} onBack={() => undefined} isParentView />
+            // Sin `onBack`: el apoderado entra directo al perfil de su hijo,
+            // no hay lista detrás a la que volver.
+            <StudentDetail student={child} isParentView />
           ) : (
-            <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
-              <div className="flex w-full max-w-md flex-col items-center rounded-2xl border border-slate-200/80 bg-white p-8 shadow-sm dark:border-slate-800/60 dark:bg-slate-900">
-                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-blue-100 bg-blue-50 text-blue-600 shadow-sm dark:border-blue-800/40 dark:bg-blue-900/30 dark:text-blue-400">
-                  <HeartHandshake size={32} />
-                </div>
-                <h2 className="mb-2 text-xl font-bold tracking-tight text-slate-800 dark:text-white">
-                  Sin estudiante vinculado
-                </h2>
-                <p className="max-w-sm text-base leading-relaxed text-slate-500 dark:text-slate-400">
-                  No encontramos un estudiante vinculado a su cuenta. Contacte a Dirección para
-                  regularizar el vínculo con su hijo.
-                </p>
-              </div>
-            </div>
+            <EmptyState
+              icon={HeartHandshake}
+              title="Sin estudiante vinculado"
+              description="No encontramos un estudiante vinculado a su cuenta. Comuníquese con Dirección para regularizar el vínculo con su hijo."
+            />
           )}
         </ModulePane>
       </ModuleShell>
@@ -80,20 +74,11 @@ export const ClassroomsModule: React.FC<ModuleProps> = ({ globalDate }) => {
 
       {view.kind === 'browse' && (
         <ModulePane>
-          <div className="flex flex-1 flex-col items-center justify-center p-8 text-center">
-            <div className="flex w-full max-w-md flex-col items-center rounded-2xl border border-slate-200/80 bg-white p-8 shadow-sm dark:border-slate-800/60 dark:bg-slate-900">
-              <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-blue-100 bg-blue-50 text-blue-600 shadow-sm dark:border-blue-800/40 dark:bg-blue-900/30 dark:text-blue-400">
-                <School size={32} />
-              </div>
-              <h2 className="mb-2 text-xl font-bold tracking-tight text-slate-800 dark:text-white">
-                Elige una sección
-              </h2>
-              <p className="max-w-sm text-base leading-relaxed text-slate-500 dark:text-slate-400">
-                Navega por los niveles educativos y elige un grado y una sección en el panel para ver
-                los detalles del aula.
-              </p>
-            </div>
-          </div>
+          <EmptyState
+            icon={School}
+            title="Elija una sección"
+            description="Navegue por los niveles educativos del panel de la izquierda y elija un grado y una sección para ver los detalles del aula."
+          />
         </ModulePane>
       )}
 

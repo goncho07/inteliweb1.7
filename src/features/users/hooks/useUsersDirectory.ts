@@ -36,8 +36,12 @@ export interface UsersDirectory {
   existingDnis: Set<string>;
   createUser: (values: UserFormValues) => UserItem;
   updateUser: (id: string, values: UserFormValues) => void;
+  /** Sube, reemplaza o quita (con `undefined`) la foto de un estudiante. */
+  updatePhoto: (id: string, photoUrl: string | undefined) => void;
   deleteUsers: (ids: string[]) => void;
   importUsers: (rows: UserFormValues[]) => void;
+  /** Vincula un apoderado a un alumno, en los dos sentidos del vínculo. */
+  linkGuardian: (studentId: string, guardianId: string) => void;
 }
 
 export const useUsersDirectory = (): UsersDirectory => {
@@ -65,7 +69,6 @@ export const useUsersDirectory = (): UsersDirectory => {
   const buildBase = useCallback(
     (id: number, role: UserRole): UserItem => ({
       id: id.toString(),
-      code: role === 'Estudiante' ? `EST20261000${1000 + id}` : undefined,
       name: '',
       dni: '',
       role,
@@ -101,6 +104,12 @@ export const useUsersDirectory = (): UsersDirectory => {
     );
   }, []);
 
+  const updatePhoto = useCallback((id: string, photoUrl: string | undefined) => {
+    setUsers((previous) =>
+      previous.map((user) => (user.id === id ? { ...user, photoUrl } : user)),
+    );
+  }, []);
+
   /**
    * Da de baja a los usuarios indicados y limpia los vínculos que apuntaban a
    * ellos: si se borra un apoderado, deja de figurar en la ficha de su hijo.
@@ -124,6 +133,20 @@ export const useUsersDirectory = (): UsersDirectory => {
     );
   }, []);
 
+  const linkGuardian = useCallback((studentId: string, guardianId: string) => {
+    setUsers((previous) =>
+      previous.map((user) => {
+        if (user.id === studentId && !(user.guardianIds ?? []).includes(guardianId)) {
+          return { ...user, guardianIds: [...(user.guardianIds ?? []), guardianId] };
+        }
+        if (user.id === guardianId && !(user.childrenIds ?? []).includes(studentId)) {
+          return { ...user, childrenIds: [...(user.childrenIds ?? []), studentId] };
+        }
+        return user;
+      }),
+    );
+  }, []);
+
   const importUsers = useCallback(
     (rows: UserFormValues[]) => {
       const created = rows.map((values, index) =>
@@ -135,5 +158,15 @@ export const useUsersDirectory = (): UsersDirectory => {
     [buildBase, nextId],
   );
 
-  return { users, countsByRole, existingDnis, createUser, updateUser, deleteUsers, importUsers };
+  return {
+    users,
+    countsByRole,
+    existingDnis,
+    createUser,
+    updateUser,
+    updatePhoto,
+    deleteUsers,
+    importUsers,
+    linkGuardian,
+  };
 };

@@ -7,6 +7,14 @@ import type { CitationMessage } from './types';
  * panel de detalle. Solo un subconjunto de `INITIAL_CITATIONS` tiene
  * mensajes (no hace falta poblar las 16 para que la pantalla se vea
  * completa). Datos deterministas, sin persistencia ni backend.
+ *
+ * **La conversación tiene que coincidir con `citation.status`**: el stepper de
+ * "Ver detalles" se deriva del estado (`getCitationTimeline`), así que un hilo
+ * de una citación `'Pendiente'` no puede terminar con el apoderado confirmando
+ * su asistencia — el profesor leería "pendiente de confirmación" justo encima
+ * de un "ahí estaremos" y no sabría cuál de los dos creer. Los hilos de las
+ * citaciones 1 y 8 (ambas `'Pendiente'`) terminan por eso en un "le confirmo",
+ * no en una confirmación cerrada; las confirmadas (11) sí la incluyen.
  */
 export const MESSAGES_BY_CITATION: Record<number, CitationMessage[]> = {
   1: [
@@ -25,7 +33,7 @@ export const MESSAGES_BY_CITATION: Record<number, CitationMessage[]> = {
     {
       id: 'c1-m3',
       sender: 'apoderado',
-      text: 'Perfecto, ahí estaremos. Muchas gracias por el apoyo con Valentina.',
+      text: 'Gracias profesor. Lo converso con la mamá de Valentina y le confirmo la asistencia a la reunión.',
       timestamp: '04/04/2026, 08:12 a. m.',
     },
   ],
@@ -85,7 +93,7 @@ export const MESSAGES_BY_CITATION: Record<number, CitationMessage[]> = {
     {
       id: 'c8-m4',
       sender: 'apoderado',
-      text: 'De acuerdo, ahí estaré sin falta.',
+      text: 'Entendido. Voy a pedir permiso en el trabajo para ese día y le confirmo, profesor.',
       timestamp: '02/04/2026, 05:25 p. m.',
     },
   ],
@@ -124,28 +132,6 @@ export const MESSAGES_BY_CITATION: Record<number, CitationMessage[]> = {
     },
   ],
 };
-
-/**
- * Estado del último mensaje enviado por el colegio en una citación, para el
- * doble check de la lista:
- * - `'ninguno'` — no hay conversación o el último turno fue del apoderado, así
- *   que no hay nada nuestro pendiente de lectura y no se pinta ningún check.
- * - `'entregado'` — se envió y el apoderado todavía no ha respondido.
- * - `'leido'` — el apoderado respondió después, única señal de lectura
- *   disponible sin backend (mismo criterio que `CitationConversationTab`).
- */
-export type CitationReadState = 'ninguno' | 'entregado' | 'leido';
-
-export function getReadState(citationId: number): CitationReadState {
-  const messages = MESSAGES_BY_CITATION[citationId];
-  if (!messages || messages.length === 0) return 'ninguno';
-
-  // Último mensaje del docente: es el único cuya lectura nos interesa mostrar.
-  const lastDocenteIndex = messages.map((m) => m.sender).lastIndexOf('docente');
-  if (lastDocenteIndex === -1) return 'ninguno';
-
-  return lastDocenteIndex < messages.length - 1 ? 'leido' : 'entregado';
-}
 
 /**
  * Mensajes sin leer por citación, derivados de forma determinista del `id`

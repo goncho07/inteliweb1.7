@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils';
  * sus filtros al borrador, para que cerrar sin aplicar no deje nada a medias.
  */
 export const FiltersPopover: React.FC<{
-  /** Título del panel, p. ej. «Filtrar citaciones». */
+  /** Nombre accesible del panel, p. ej. «Filtrar citaciones». No se muestra. */
   title: string;
   /** Filtros aplicados: se muestran como ficha numérica sobre el botón. */
   appliedCount: number;
@@ -70,11 +70,10 @@ export const FiltersPopover: React.FC<{
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent align="end" className="w-[380px] rounded-2xl p-0">
-        <div className="border-b border-slate-100 p-4 dark:border-slate-800">
-          <h4 className="text-base font-bold text-slate-800 dark:text-slate-100">{title}</h4>
-        </div>
-
+      {/* Sin cabecera visible: el botón que abre el panel ya dice «Filtros» y
+          repetir «Filtrar citaciones» encima solo añadía una fila más. El
+          título sigue nombrando el panel para lectores de pantalla. */}
+      <PopoverContent aria-label={title} align="end" className="w-[380px] rounded-2xl p-0">
         <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2">{children}</div>
 
         <div className="flex items-center justify-between gap-3 border-t border-slate-100 p-4 dark:border-slate-800">

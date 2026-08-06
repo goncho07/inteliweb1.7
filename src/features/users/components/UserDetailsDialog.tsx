@@ -1,332 +1,312 @@
-import React, { useMemo } from 'react';
-import {
-  Briefcase,
-  CalendarDays,
-  CreditCard,
-  GraduationCap,
-  Hash,
-  HeartHandshake,
-  Home,
-  KeyRound,
-  Mail,
-  Pencil,
-  Phone,
-  School,
-  Settings,
-  ShieldCheck,
-  User,
-  UserRound,
-  type LucideIcon,
-} from 'lucide-react';
+import React, { useMemo, useRef, useState } from 'react';
+import { Camera, HeartHandshake, KeyRound, Mail, Pencil, ShieldCheck, User, UserPlus } from 'lucide-react';
 
+import { Button } from '@/components/ui/button';
 import {
-  DIALOG_TABS_LIST_CLASS,
-  DIALOG_TAB_TRIGGER_CLASS,
+  DIALOG_ACTION_CLASS,
+  DialogShellBody,
+  DialogShellCancelButton,
   DialogShellContent,
   DialogShellFooter,
   DialogShellHeader,
+  DialogShellSection,
 } from '@/components/common/DialogShell';
 import { EmptyState } from '@/components/common/EmptyState';
 import { StudentAvatar } from '@/components/common/StudentAvatar';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  DataField,
-  DetailSection,
-  RelatedPersonRow,
-} from '@/features/users/components/UserDetailFields';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { LinkGuardianPanel } from '@/features/users/components/LinkGuardianPanel';
+import { DataField, RelatedPersonRow } from '@/features/users/components/UserDetailFields';
+import { UserDetailsView } from '@/features/users/components/UserDetailsView';
+import { UserFormBody } from '@/features/users/components/UserFormDialog';
 import { ROLE_META, STATUS_STYLES } from '@/features/users/users.constants';
-import {
-  APP_ROLE_LABEL,
-  calculateAge,
-  formatBirthDate,
-  formatGender,
-  formatPhone,
-} from '@/features/users/users.format';
-import { getClassroomLabel } from '@/features/classrooms/overview.format';
+import { APP_ROLE_LABEL } from '@/features/users/users.format';
+import type { UserFormValues } from '@/features/users/users.form';
 import { cn } from '@/lib/utils';
 import type { UserItem } from '@/types';
 
 /**
- * Ficha de un usuario, de solo lectura: para cambiar algo se abre el
- * formulario de edición, que es el único sitio donde se escribe. Antes esta
- * misma ventana tenía campos editables y un botón «Guardar cambios» que solo
- * cerraba la ventana, y rellenaba con datos fijos (una fecha de nacimiento,
- * un código modular y un género idénticos para todo el colegio) lo que no
- * sabía. Ahora todo lo que se ve sale del registro y lo que falta se dice.
+ * Ficha de un usuario. Abre siempre en **modo lectura**: nada es editable
+ * hasta que se pulsa «Editar», que cambia el cuerpo de la misma ventana al
+ * formulario — no hay una segunda ventana encima de la primera. La cabecera
+ * (avatar, nombre, etiquetas) es la misma en los dos modos.
  */
 
-export type UserDetailTab = 'personal' | 'academic' | 'family' | 'account';
+/**
+ * Etiqueta de la cabecera (rol, estado). Más grande y más marcada que una
+ * `Badge` de tabla: aquí resume a la persona, no es un adorno.
+ */
+const HeaderTag: React.FC<{ className?: string; children: React.ReactNode }> = ({
+  className,
+  children,
+}) => (
+  <span
+    className={cn(
+      'inline-flex w-full items-center justify-center gap-2 rounded-lg border-2 px-3 py-1.5 text-sm font-bold',
+      className,
+    )}
+  >
+    {children}
+  </span>
+);
 
-interface TabDefinition {
-  id: UserDetailTab;
-  label: string;
-  icon: LucideIcon;
-}
-
-const tabsForRole = (user: UserItem): TabDefinition[] => {
-  const personal: TabDefinition = { id: 'personal', label: 'Datos personales', icon: User };
-  const academic: TabDefinition = { id: 'academic', label: 'Académico', icon: GraduationCap };
-  const family: TabDefinition = { id: 'family', label: 'Familia', icon: HeartHandshake };
-  const account: TabDefinition = { id: 'account', label: 'Acceso', icon: Settings };
-
-  switch (user.role) {
-    case 'Estudiante':
-      return [personal, academic, family];
-    case 'Docente':
-      return [personal, academic, account];
-    case 'Apoderado':
-      return [personal, family, account];
-    case 'Administrativo':
-      return [personal, account];
-  }
-};
-
-export const UserDetailsDialog: React.FC<{
+interface UserDetailsDialogProps {
   open: boolean;
   user: UserItem | null;
   /** Padrón completo, para resolver los vínculos de familia. */
   users: UserItem[];
-  /** Pestaña con la que abrir (p. ej. «Familia» al venir de esa acción). */
-  initialTab?: UserDetailTab;
+  /** DNI ya registrados, para que el formulario no admita duplicados. */
+  existingDnis: Set<string>;
   onClose: () => void;
-  onEdit: (user: UserItem) => void;
+  /** Guarda los cambios de la ficha. */
+  onSave: (user: UserItem, values: UserFormValues) => void;
   /** Abrir la ficha de una persona vinculada sin salir del módulo. */
   onOpenRelated: (user: UserItem) => void;
-}> = ({ open, user, users, initialTab = 'personal', onClose, onEdit, onOpenRelated }) => {
-  const tabs = useMemo(() => (user ? tabsForRole(user) : []), [user]);
+  /** Vincula un apoderado ya registrado al alumno. */
+  onLinkGuardian: (student: UserItem, guardian: UserItem) => void;
+  /** Sube, reemplaza o quita la foto de un alumno. Solo aplica a Estudiante. */
+  onUpdatePhoto: (user: UserItem, photoUrl: string | undefined) => void;
+}
+
+const UserDetailsContent: React.FC<
+  Omit<UserDetailsDialogProps, 'open' | 'user'> & { user: UserItem }
+> = ({ user, users, existingDnis, onClose, onSave, onOpenRelated, onLinkGuardian, onUpdatePhoto }) => {
+  const [mode, setMode] = useState<'view' | 'edit'>('view');
+  const [showLinkPanel, setShowLinkPanel] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const guardians = useMemo(
     () =>
-      (user?.guardianIds ?? [])
+      (user.guardianIds ?? [])
         .map((id) => users.find((item) => item.id === id))
         .filter((item): item is UserItem => !!item),
     [user, users],
   );
   const children = useMemo(
     () =>
-      (user?.childrenIds ?? [])
+      (user.childrenIds ?? [])
         .map((id) => users.find((item) => item.id === id))
         .filter((item): item is UserItem => !!item),
     [user, users],
   );
+  const guardianCandidates = useMemo(
+    () =>
+      users.filter(
+        (item) => item.role === 'Apoderado' && !(user.guardianIds ?? []).includes(item.id),
+      ),
+    [user, users],
+  );
 
-  if (!user) return null;
-
-  // La pestaña pedida puede no existir para este rol (un apoderado no tiene
-  // «Académico»): en ese caso se cae a la primera, en vez de dejar el cuerpo
-  // de la ficha en blanco.
-  const activeTab = tabs.some((tab) => tab.id === initialTab) ? initialTab : tabs[0].id;
   const meta = ROLE_META[user.role];
-  const age = calculateAge(user.birthDate);
-  const tutorClassroom =
-    user.level && user.grade && user.section
-      ? getClassroomLabel({ level: user.level, grade: user.grade, section: user.section })
-      : null;
+  const isStudent = user.role === 'Estudiante';
+  const hasFamily = isStudent || children.length > 0;
+  // Los estudiantes no inician sesión: no tienen apartado de acceso.
+  const hasAccount = !isStudent;
+
+  /** Aula del alumno, bajo su nombre: es lo primero que se pregunta de él. */
+  const classroomLine = [user.level, user.grade, user.section && `Sección ${user.section}`]
+    .filter(Boolean)
+    .join(' · ');
+
+  /** Lee la foto elegida y la guarda como data URL: simulación sin backend. */
+  const handlePhotoSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') onUpdatePhoto(user, reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const familyAndAccessSections = (
+    <>
+      {hasFamily && (
+        <DialogShellSection
+          title={isStudent ? 'Apoderados registrados' : 'Hijos a su cargo'}
+          icon={HeartHandshake}
+        >
+          {isStudent && guardians.length === 0 ? (
+            showLinkPanel ? (
+              <LinkGuardianPanel
+                student={user}
+                candidates={guardianCandidates}
+                onCancel={() => setShowLinkPanel(false)}
+                onLink={(guardianId) => {
+                  const guardian = users.find((item) => item.id === guardianId);
+                  if (guardian) onLinkGuardian(user, guardian);
+                  setShowLinkPanel(false);
+                }}
+              />
+            ) : (
+              <EmptyState
+                icon={HeartHandshake}
+                title="Sin apoderados vinculados"
+                description="Este alumno todavía no tiene apoderados registrados."
+                action={
+                  <Button
+                    type="button"
+                    onClick={() => setShowLinkPanel(true)}
+                    className="h-10 gap-2 rounded-xl px-4 text-base font-semibold"
+                  >
+                    <UserPlus size={20} /> Vincular apoderado
+                  </Button>
+                }
+                className="min-h-[160px] rounded-2xl border border-dashed border-slate-200 dark:border-slate-800"
+              />
+            )
+          ) : (
+            <div className="flex flex-col gap-3">
+              {isStudent
+                ? guardians.map((guardian, index) => (
+                    <RelatedPersonRow
+                      key={guardian.id}
+                      person={guardian}
+                      relation={
+                        index === 0
+                          ? 'Apoderado principal'
+                          : guardian.gender === 'M'
+                            ? 'Padre'
+                            : 'Madre'
+                      }
+                      highlight={index === 0}
+                      onOpen={onOpenRelated}
+                    />
+                  ))
+                : children.map((child) => (
+                    <RelatedPersonRow
+                      key={child.id}
+                      person={child}
+                      relation={child.gender === 'M' ? 'Hijo' : 'Hija'}
+                      onOpen={onOpenRelated}
+                    />
+                  ))}
+            </div>
+          )}
+        </DialogShellSection>
+      )}
+
+      {hasAccount && (
+        <DialogShellSection title="Acceso al sistema" icon={KeyRound}>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <DataField label="Usuario" value={user.dni} icon={User} />
+            <DataField
+              label="Perfil de acceso"
+              value={user.appRole ? APP_ROLE_LABEL[user.appRole] : null}
+              icon={ShieldCheck}
+            />
+            <DataField label="Correo de contacto" value={user.email} icon={Mail} />
+            <DataField label="Estado de la cuenta" value={user.status} icon={KeyRound} />
+          </div>
+        </DialogShellSection>
+      )}
+    </>
+  );
+
+  const header = (
+    <DialogShellHeader
+      align="center"
+      asideStack
+      leading={
+        <div className="relative h-16 w-16 shrink-0">
+          <StudentAvatar
+            className="h-16 w-16 rounded-2xl"
+            photoUrl={user.photoUrl}
+            name={user.name}
+          />
+          {isStudent && (
+            <>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    size="icon"
+                    onClick={() => photoInputRef.current?.click()}
+                    aria-label="Cambiar foto"
+                    className="absolute -bottom-2 -right-2 h-10 w-10 rounded-full border-2 border-white shadow-md dark:border-slate-900"
+                  >
+                    <Camera size={16} strokeWidth={2} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Cambiar foto</TooltipContent>
+              </Tooltip>
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoSelected}
+                className="hidden"
+              />
+            </>
+          )}
+        </div>
+      }
+      title={user.name}
+      description={classroomLine || undefined}
+      aside={
+        <>
+          <HeaderTag className="border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
+            <meta.icon size={16} strokeWidth={2.5} /> {meta.singular}
+          </HeaderTag>
+          <HeaderTag className={STATUS_STYLES[user.status]}>{user.status}</HeaderTag>
+        </>
+      }
+    />
+  );
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogShellContent size="md" height="fixed">
-        <DialogShellHeader
-          leading={<StudentAvatar className="h-11 w-11 shrink-0" />}
-          title={<span className="min-w-0 truncate">{user.name}</span>}
-          description={`Datos registrados · DNI ${user.dni}`}
-        >
-          <div className="flex flex-wrap items-center gap-2 pt-1">
-            <Badge
-              variant="outline"
-              className="gap-1.5 border-slate-200 bg-slate-100 px-2.5 py-0.5 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+    <>
+      {header}
+
+      {mode === 'view' ? (
+        <>
+          <DialogShellBody flush>
+            <UserDetailsView user={user} />
+            {familyAndAccessSections}
+          </DialogShellBody>
+          <DialogShellFooter>
+            <DialogShellCancelButton onClick={onClose}>Cerrar</DialogShellCancelButton>
+            <Button
+              type="button"
+              onClick={() => setMode('edit')}
+              className={DIALOG_ACTION_CLASS}
             >
-              <meta.icon size={16} /> {meta.singular}
-            </Badge>
-            <Badge
-              variant="outline"
-              className={cn('px-2.5 py-0.5 text-sm', STATUS_STYLES[user.status])}
-            >
-              {user.status}
-            </Badge>
-          </div>
-        </DialogShellHeader>
-
-        {/* La `key` reinicia la pestaña activa al cambiar de persona o al
-            abrir la ficha directamente en «Familia». */}
-        <Tabs
-          key={`${user.id}-${activeTab}`}
-          defaultValue={activeTab}
-          className="flex min-h-0 flex-1 flex-col"
-        >
-          <TabsList className={DIALOG_TABS_LIST_CLASS}>
-            {tabs.map((tab) => (
-              <TabsTrigger key={tab.id} value={tab.id} className={DIALOG_TAB_TRIGGER_CLASS}>
-                <tab.icon size={20} />
-                {tab.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-
-          {/* Única zona con scroll: el alto de la ventana no cambia al pasar de
-              una pestaña a otra, solo cambia lo que hay dentro. */}
-          <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto p-6">
-            <TabsContent value="personal" className="mt-0 flex flex-col gap-6">
-              <DetailSection title="Identidad" icon={CreditCard}>
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                  <DataField label="DNI" value={user.dni} icon={CreditCard} />
-                  <DataField
-                    label="Fecha de nacimiento"
-                    value={formatBirthDate(user.birthDate)}
-                    hint={age === null ? undefined : `(${age} años)`}
-                    icon={CalendarDays}
-                  />
-                  <DataField label="Género" value={formatGender(user.gender)} icon={UserRound} />
-                  {user.role === 'Estudiante' && (
-                    <DataField label="Código del estudiante" value={user.code} icon={Hash} />
-                  )}
-                  {user.role === 'Estudiante' && (
-                    <DataField label="Código modular" value={user.modularCode} icon={Hash} />
-                  )}
-                  {user.role === 'Administrativo' && (
-                    <DataField label="Cargo" value={user.position} icon={ShieldCheck} />
-                  )}
-                </div>
-              </DetailSection>
-
-              <DetailSection title="Contacto" icon={Phone}>
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                  <DataField label="Correo electrónico" value={user.email} icon={Mail} />
-                  <DataField label="Teléfono" value={formatPhone(user.phone)} icon={Phone} />
-                  <DataField label="Dirección" value={user.address} icon={Home} />
-                </div>
-              </DetailSection>
-            </TabsContent>
-
-            <TabsContent value="academic" className="mt-0 flex flex-col gap-6">
-              {user.role === 'Docente' ? (
-                <>
-                  <DetailSection title="Información académica" icon={School}>
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                      <DataField label="Curso que dicta" value={user.subject} icon={Briefcase} />
-                      <DataField label="Tutor de" value={tutorClassroom} icon={GraduationCap} />
-                    </div>
-                  </DetailSection>
-
-                  <DetailSection title="Aulas a su cargo" icon={School}>
-                    {(user.classrooms?.length ?? 0) === 0 ? (
-                      <p className="text-base text-slate-500 dark:text-slate-400">
-                        No tiene aulas asignadas todavía.
-                      </p>
-                    ) : (
-                      <div className="flex flex-wrap gap-2">
-                        {user.classrooms?.map((classroom) => (
-                          <span
-                            key={`${classroom.level}-${classroom.grade}-${classroom.section}`}
-                            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-base font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
-                          >
-                            {getClassroomLabel(classroom)}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </DetailSection>
-                </>
-              ) : (
-                <DetailSection title="Situación académica" icon={School}>
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                    <DataField label="Nivel educativo" value={user.level} icon={School} />
-                    <DataField label="Grado" value={user.grade} icon={GraduationCap} />
-                    <DataField label="Sección" value={user.section} icon={Hash} />
-                    <DataField label="Situación" value={user.status} icon={ShieldCheck} />
-                  </div>
-                </DetailSection>
-              )}
-            </TabsContent>
-
-            <TabsContent value="family" className="mt-0 flex h-full flex-col gap-6">
-              {/* Sin vínculos, el estado vacío ocupa el cuerpo entero en vez de
-                  dejar la ventana medio vacía. */}
-              {user.role === 'Estudiante' && guardians.length === 0 ? (
-                <EmptyState
-                  icon={HeartHandshake}
-                  title="Sin apoderados vinculados"
-                  description="Este alumno todavía no tiene apoderados registrados. Se vinculan desde la lista de Apoderados."
-                />
-              ) : user.role !== 'Estudiante' && children.length === 0 ? (
-                <EmptyState
-                  icon={HeartHandshake}
-                  title="Sin hijos vinculados"
-                  description="No hay estudiantes asociados a esta persona en el padrón."
-                />
-              ) : (
-                <DetailSection
-                  title={user.role === 'Estudiante' ? 'Apoderados registrados' : 'Hijos a su cargo'}
-                  icon={HeartHandshake}
-                >
-                  <div className="flex flex-col gap-3">
-                    {user.role === 'Estudiante'
-                      ? guardians.map((guardian, index) => (
-                          <RelatedPersonRow
-                            key={guardian.id}
-                            person={guardian}
-                            relation={
-                              index === 0
-                                ? 'Apoderado principal'
-                                : guardian.gender === 'M'
-                                  ? 'Padre'
-                                  : 'Madre'
-                            }
-                            highlight={index === 0}
-                            onOpen={onOpenRelated}
-                          />
-                        ))
-                      : children.map((child) => (
-                          <RelatedPersonRow
-                            key={child.id}
-                            person={child}
-                            relation={child.gender === 'M' ? 'Hijo' : 'Hija'}
-                            onOpen={onOpenRelated}
-                          />
-                        ))}
-                  </div>
-                </DetailSection>
-              )}
-            </TabsContent>
-
-            <TabsContent value="account" className="mt-0 flex flex-col gap-6">
-              <DetailSection title="Acceso al sistema" icon={KeyRound}>
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                  <DataField label="Usuario" value={user.dni} icon={User} />
-                  <DataField
-                    label="Perfil de acceso"
-                    value={user.appRole ? APP_ROLE_LABEL[user.appRole] : null}
-                    icon={ShieldCheck}
-                  />
-                  <DataField label="Correo de contacto" value={user.email} icon={Mail} />
-                  <DataField label="Estado de la cuenta" value={user.status} icon={KeyRound} />
-                </div>
-              </DetailSection>
-            </TabsContent>
-          </div>
-        </Tabs>
-
-        <DialogShellFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onClose}
-            className="h-12 rounded-xl px-6 text-base font-semibold"
-          >
-            Cerrar
-          </Button>
-          <Button
-            type="button"
-            onClick={() => onEdit(user)}
-            className="h-12 gap-2 rounded-xl px-6 text-base font-semibold"
-          >
-            <Pencil size={20} /> Editar datos
-          </Button>
-        </DialogShellFooter>
-      </DialogShellContent>
-    </Dialog>
+              <Pencil size={20} /> Editar
+            </Button>
+          </DialogShellFooter>
+        </>
+      ) : (
+        <UserFormBody
+          user={user}
+          defaultRole={user.role}
+          existingDnis={existingDnis}
+          header={<></>}
+          cancelLabel="Cancelar"
+          submitLabel="Guardar cambios"
+          onClose={() => setMode('view')}
+          onSubmit={(values) => {
+            onSave(user, values);
+            setMode('view');
+          }}
+          extraSections={familyAndAccessSections}
+        />
+      )}
+    </>
   );
 };
+
+export const UserDetailsDialog: React.FC<UserDetailsDialogProps> = ({
+  open,
+  user,
+  onClose,
+  ...rest
+}) => (
+  <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+    <DialogShellContent>
+      {/* La `key` obliga a empezar de cero al cambiar de persona: la ficha
+          vuelve a modo lectura y se rellena con los datos de la nueva persona. */}
+      {user && <UserDetailsContent key={user.id} user={user} onClose={onClose} {...rest} />}
+    </DialogShellContent>
+  </Dialog>
+);

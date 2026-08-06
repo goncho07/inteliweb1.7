@@ -116,7 +116,6 @@ export const UsersTable: React.FC<{
   /** Usuario cuya ficha está abierta: su fila se queda remarcada. */
   activeUserId: string | null;
   onView: (user: UserItem) => void;
-  onEdit: (user: UserItem) => void;
   onDelete: (user: UserItem) => void;
   onDownloadCarnet: (user: UserItem) => void;
   onViewSchedule: (user: UserItem) => void;
@@ -125,7 +124,6 @@ export const UsersTable: React.FC<{
   filters,
   activeUserId,
   onView,
-  onEdit,
   onDelete,
   onDownloadCarnet,
   onViewSchedule,
@@ -202,13 +200,17 @@ export const UsersTable: React.FC<{
                   >
                     <TableCell className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <StudentAvatar className="h-10 w-10" />
+                        <StudentAvatar
+                          className="h-10 w-10"
+                          photoUrl={user.role === 'Estudiante' ? user.photoUrl : undefined}
+                          name={user.name}
+                        />
                         <div className="min-w-0">
                           <p className="truncate text-base font-bold text-slate-900 dark:text-white">
                             {user.name}
                           </p>
                           <p className="truncate text-sm text-slate-500 dark:text-slate-400">
-                            {user.code ?? user.email}
+                            {user.modularCode ?? user.email}
                           </p>
                         </div>
                       </div>
@@ -243,7 +245,6 @@ export const UsersTable: React.FC<{
                       <UserRowActions
                         user={user}
                         onView={onView}
-                        onEdit={onEdit}
                         onDelete={onDelete}
                         onDownloadCarnet={onDownloadCarnet}
                         onViewSchedule={onViewSchedule}

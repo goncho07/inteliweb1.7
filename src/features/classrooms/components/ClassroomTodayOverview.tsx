@@ -1,24 +1,24 @@
 import React, { useMemo, useState } from 'react';
-import { ShieldAlert } from 'lucide-react';
+import { ClipboardList } from 'lucide-react';
 
 import { ModuleBody, ModulePaneHeader } from '@/components/layout/ModuleShell';
 import { useToast } from '@/hooks/use-toast';
 import type { ClassroomRef } from '@/features/classrooms/types';
 import { formatStudentDisplayName, getClassroomLabel } from '@/features/classrooms/overview.format';
 import { getCitationsForAula } from '@/features/classrooms/overview.citations';
-import { getMonthLabel, getMonthRange, stepMonth } from '@/features/classrooms/overview.period';
+import { clampToSchoolYear, getMonthLabel, getMonthRange, stepMonth } from '@/features/classrooms/overview.period';
 import { downloadAttendanceReport, downloadCitationsReport, downloadIncidentsReport } from '@/features/classrooms/overview.pdf';
 import {
   buildAttendanceGridRowsForStudents,
   buildIncidentReportRows,
   buildSchoolDays,
-  groupDaysByWeekOfMonth,
+  groupDaysBySchoolWeek,
 } from '@/features/classrooms/overview.rows';
 import type { UserItem } from '@/types';
 
 import { AttendanceGridLegend, AttendanceGridTable } from './overview/AttendanceGridTable';
 import { CitationsTable } from './overview/CitationsTable';
-import { IncidentsTable } from './overview/IncidentsTable';
+import { IncidentsSeverityLegend, IncidentsTable } from './overview/IncidentsTable';
 import { OverviewInlineEmpty } from './overview/OverviewInlineEmpty';
 import { OverviewPeriodBar } from './overview/OverviewPeriodBar';
 import { OverviewStatusLegend } from './overview/OverviewStatusLegend';
@@ -50,7 +50,7 @@ export const ClassroomTodayOverview: React.FC<{
   const [activeTab, setActiveTab] = useState<OverviewTabId>('asistencia');
   // Único eje de tiempo del reporte: el mes en pantalla. No hay selector de
   // periodo — los reportes del colegio siempre se emiten por mes.
-  const [cursor, setCursor] = useState<Date>(today);
+  const [cursor, setCursor] = useState<Date>(() => clampToSchoolYear(today));
   const [search, setSearch] = useState('');
 
   const aulaSeed = `${classroom.level}-${classroom.grade}-${classroom.section}`;
@@ -78,7 +78,7 @@ export const ClassroomTodayOverview: React.FC<{
   const periodLabel = useMemo(() => getMonthLabel(cursor), [cursor]);
 
   const schoolDays = useMemo(() => buildSchoolDays(start, end), [start, end]);
-  const dayGroups = useMemo(() => groupDaysByWeekOfMonth(schoolDays), [schoolDays]);
+  const dayGroups = useMemo(() => groupDaysBySchoolWeek(schoolDays), [schoolDays]);
   const attendanceRows = useMemo(
     () => buildAttendanceGridRowsForStudents(aulaSeed, schoolDays, today, filteredStudents),
     [aulaSeed, schoolDays, today, filteredStudents],
@@ -118,6 +118,11 @@ export const ClassroomTodayOverview: React.FC<{
         <span className="text-xs font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Leyenda:</span>
         <AttendanceGridLegend />
       </>
+    ) : activeTab === 'incidencias' ? (
+      <>
+        <span className="text-xs font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Gravedad:</span>
+        <IncidentsSeverityLegend />
+      </>
     ) : activeTab === 'citaciones' && citationStatuses.length > 0 ? (
       <>
         <span className="text-xs font-bold uppercase tracking-wide text-slate-400 dark:text-slate-500">Estado:</span>
@@ -130,7 +135,7 @@ export const ClassroomTodayOverview: React.FC<{
       <ModulePaneHeader>
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400">
-            <ShieldAlert size={20} strokeWidth={2} />
+            <ClipboardList size={20} strokeWidth={2} />
           </div>
           <div className="min-w-0">
             <p className="truncate text-lg font-bold text-slate-800 dark:text-white">Vista General del Aula</p>
@@ -147,7 +152,7 @@ export const ClassroomTodayOverview: React.FC<{
         cursor={cursor}
         today={today}
         onStep={(direction) => setCursor((prev) => stepMonth(prev, direction))}
-        onToday={() => setCursor(today)}
+        onToday={() => setCursor(clampToSchoolYear(today))}
         search={search}
         onSearchChange={setSearch}
         downloadDisabled={false}

@@ -49,7 +49,7 @@ const matchesSearch = (user: UserItem, query: string): boolean => {
     user.name.toLowerCase().includes(needle) ||
     user.dni.includes(needle) ||
     user.email.toLowerCase().includes(needle) ||
-    (user.code?.toLowerCase().includes(needle) ?? false)
+    (user.modularCode?.toLowerCase().includes(needle) ?? false)
   );
 };
 
